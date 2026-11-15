@@ -8,6 +8,7 @@ ARG GOVULNCHECK_VERSION
 ARG GOSEC_VERSION
 ARG GITLEAKS_VERSION
 
+# The tool versions, readable without pulling the image.
 LABEL tools.govulncheck.version=$GOVULNCHECK_VERSION \
       tools.gosec.version=$GOSEC_VERSION \
       tools.gitleaks.version=$GITLEAKS_VERSION

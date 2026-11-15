@@ -55,6 +55,9 @@ jobs:
             grep -E '^[A-Z_]+=' scripts/security-tools.env
             echo EOF
           } >> "$GITHUB_OUTPUT"
+          # Shown as the package description on ghcr.io.
+          . scripts/security-tools.env
+          echo "description=Go with govulncheck $GOVULNCHECK_VERSION, gosec $GOSEC_VERSION and gitleaks $GITLEAKS_VERSION" >> "$GITHUB_OUTPUT"
 
       - uses: docker/setup-qemu-action@v3
       - uses: docker/setup-buildx-action@v3
@@ -70,6 +73,10 @@ jobs:
       - name: Image metadata
         id: meta
         uses: docker/metadata-action@v5
+        env:
+          # ghcr.io reads the package description from the index of a
+          # multi-platform image, so annotate it as well as the manifests.
+          DOCKER_METADATA_ANNOTATIONS_LEVELS: manifest,index
         with:
           images: ${{ env.IMAGE }}
           flavor: |
@@ -83,7 +90,7 @@ jobs:
             type=sha
           labels: |
             org.opencontainers.image.title=security-scanner
-            org.opencontainers.image.description=Go with govulncheck, gosec and gitleaks
+            org.opencontainers.image.description=${{ steps.tools.outputs.description }}
 
       - name: Build and push
         uses: docker/build-push-action@v6
@@ -94,6 +101,7 @@ jobs:
           push: ${{ github.event_name != 'pull_request' }}
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
+          annotations: ${{ steps.meta.outputs.annotations }}
           build-args: ${{ steps.tools.outputs.args }}
           cache-from: type=gha,scope=${{ matrix.variant }}
           cache-to: type=gha,mode=max,scope=${{ matrix.variant }}

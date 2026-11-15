@@ -45,7 +45,7 @@ jobs:
             runner: ubuntu-26.04-arm
             arch: arm64
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
       - name: Read tool versions
         id: tools
@@ -59,12 +59,12 @@ jobs:
           . scripts/security-tools.env
           echo "description=Go with govulncheck $GOVULNCHECK_VERSION, gosec $GOSEC_VERSION and gitleaks $GITLEAKS_VERSION" >> "$GITHUB_OUTPUT"
 
-      - uses: docker/setup-qemu-action@v3
-      - uses: docker/setup-buildx-action@v3
+      - uses: docker/setup-qemu-action@v4
+      - uses: docker/setup-buildx-action@v4
 
       - name: Log in to ghcr.io
         if: github.event_name != 'pull_request'
-        uses: docker/login-action@v3
+        uses: docker/login-action@v4
         with:
           registry: ghcr.io
           username: ${{ github.actor }}
@@ -72,7 +72,7 @@ jobs:
 
       - name: Image metadata
         id: meta
-        uses: docker/metadata-action@v5
+        uses: docker/metadata-action@v6
         env:
           # ghcr.io reads the package description from the index of a
           # multi-platform image, so annotate it as well as the manifests.
@@ -93,7 +93,7 @@ jobs:
             org.opencontainers.image.description=${{ steps.tools.outputs.description }}
 
       - name: Build and push
-        uses: docker/build-push-action@v6
+        uses: docker/build-push-action@v7
         with:
           context: .
           file: ${{ matrix.dockerfile }}

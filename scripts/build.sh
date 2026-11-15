@@ -1,0 +1,72 @@
+#!/usr/bin/env bash
+#
+# Build the security scanner image locally, and optionally push it to the
+# GitHub Container Registry (ghcr.io).
+#
+#   scripts/build.sh                  build ghcr.io/OWNER/security-scanner:dev
+#   scripts/build.sh -a               build the alpine variant
+#   scripts/build.sh -t 1.2.3 -p      build and push :1.2.3
+#
+# Pushing needs `docker login ghcr.io` with a token that has write:packages.
+set -euo pipefail
+
+cd "$(dirname "$0")/.."
+
+IMAGE=
+TAG=dev
+VARIANT=debian
+PUSH=false
+
+usage() {
+  cat <<EOF2
+Usage: $(basename "$0") [-i IMAGE] [-t TAG] [-a] [-p] [-h]
+
+  -i IMAGE  image name (default: ghcr.io/OWNER/security-scanner, OWNER from
+            the origin remote)
+  -t TAG    image tag (default: $TAG); the alpine variant gets "-alpine" added
+  -a        build the alpine variant
+  -p        push the image after building it
+  -h        show this help
+EOF2
+}
+
+while getopts "i:t:aph" opt; do
+  case "$opt" in
+    i) IMAGE=$OPTARG ;;
+    t) TAG=$OPTARG ;;
+    a) VARIANT=alpine ;;
+    p) PUSH=true ;;
+    h) usage; exit 0 ;;
+    *) usage >&2; exit 2 ;;
+  esac
+done
+
+command -v docker >/dev/null || { echo "error: docker is required" >&2; exit 1; }
+
+if [ -z "$IMAGE" ]; then
+  owner=$(git remote get-url origin 2>/dev/null | sed -E 's#^(git@github.com:|https://github.com/)([^/]+)/.*#\2#' || true)
+  [ -n "$owner" ] || { echo "error: cannot detect the owner; pass -i IMAGE" >&2; exit 1; }
+  IMAGE=ghcr.io/$(printf '%s' "$owner" | tr '[:upper:]' '[:lower:]')/security-scanner
+fi
+
+dockerfile=docker/security/Dockerfile
+if [ "$VARIANT" = alpine ]; then
+  dockerfile=docker/security/Dockerfile.alpine
+  TAG=$TAG-alpine
+fi
+
+build_args=()
+while IFS='=' read -r key value; do
+  case $key in
+    ''|\#*) continue ;;
+  esac
+  build_args+=(--build-arg "$key=$value")
+done < scripts/security-tools.env
+
+echo "==> building $IMAGE:$TAG"
+docker build -f "$dockerfile" "${build_args[@]}" -t "$IMAGE:$TAG" .
+
+if $PUSH; then
+  echo "==> pushing $IMAGE:$TAG"
+  docker push "$IMAGE:$TAG"
+fi

@@ -7,6 +7,8 @@
 #   3. Follows the Release Check workflow that the merge triggers on main.
 #      release-please then opens the release PR, which the workflow merges.
 #   4. Waits for the new GitHub release to appear and prints its version.
+#   5. Follows the Build image run that the new tag triggers, which builds and
+#      pushes the images to ghcr.io, and prints their names.
 #
 # Before anything is pushed, both image variants must build for the local
 # platform (scripts/build.sh); -s skips that.
@@ -20,6 +22,7 @@ set -euo pipefail
 
 BASE=main
 WORKFLOW=release-please.yml
+BUILD_WORKFLOW=build.yml
 TIMEOUT=900
 
 cd "$(dirname "$0")/.."
@@ -203,4 +206,20 @@ if TAG=$(wait_for_release "$RELEASE_BEFORE"); then
 else
   die "no new release after ${TIMEOUT}s; check ${RELEASE_PR:-the $WORKFLOW runs}"
 fi
+
+# The release tag triggers the image build; the release is not finished until
+# the images are pushed.
+log "Waiting for the image build of $TAG"
+BUILD_RUN=
+for _ in $(seq 1 40); do
+  BUILD_RUN=$(gh run list --workflow "$BUILD_WORKFLOW" --event push --branch "$TAG" --limit 1 --json databaseId --jq '.[0].databaseId // empty')
+  [ -n "$BUILD_RUN" ] && break
+  sleep 3
+done
+[ -n "$BUILD_RUN" ] || die "no image build was triggered by $TAG; check the $BUILD_WORKFLOW runs"
+gh run watch "$BUILD_RUN" --exit-status || die "image build failed: $(gh run view "$BUILD_RUN" --json url --jq .url)"
+
+IMAGE=ghcr.io/$(gh repo view --json owner --jq '.owner.login' | tr '[:upper:]' '[:lower:]')/security-scanner
+VERSION_TAG=${TAG#v}
+log "Published $IMAGE:$VERSION_TAG and $IMAGE:$VERSION_TAG-alpine"
 log "Done"

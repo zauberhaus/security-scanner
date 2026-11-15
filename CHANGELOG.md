@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.0.1](https://github.com/zauberhaus/security-scanner/compare/v1.0.0...v1.0.1) (2026-11-15)
+
+
+### Bug Fixes
+
+* add package description ([ebd5bf3](https://github.com/zauberhaus/security-scanner/commit/ebd5bf36d6e5e2c3b48d77d609f5a275b78940e6))
+
 ## 1.0.0 (2026-11-15)
 
 

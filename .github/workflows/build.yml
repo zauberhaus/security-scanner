@@ -33,13 +33,17 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        include:
+        include:         
           - variant: debian
             dockerfile: docker/security/Dockerfile
             suffix: ""
-          - variant: alpine
-            dockerfile: docker/security/Dockerfile.alpine
-            suffix: "-alpine"
+            runner: ubuntu-26.04
+            arch: amd64
+          - variant: debian
+            dockerfile: docker/security/Dockerfile
+            suffix: ""
+            runner: ubuntu-26.04-arm
+            arch: arm64
     steps:
       - uses: actions/checkout@v4
 

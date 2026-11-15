@@ -16,24 +16,27 @@ IMAGE=
 TAG=dev
 VARIANT=debian
 PUSH=false
+PLATFORMS=linux/amd64,linux/arm64
 
 usage() {
   cat <<EOF2
-Usage: $(basename "$0") [-i IMAGE] [-t TAG] [-a] [-p] [-h]
+Usage: $(basename "$0") [-i IMAGE] [-t TAG] [-P PLATFORMS] [-a] [-p] [-h]
 
   -i IMAGE  image name (default: ghcr.io/OWNER/security-scanner, OWNER from
             the origin remote)
   -t TAG    image tag (default: $TAG); the alpine variant gets "-alpine" added
+  -P LIST   comma separated platforms (default: $PLATFORMS)
   -a        build the alpine variant
   -p        push the image after building it
   -h        show this help
 EOF2
 }
 
-while getopts "i:t:aph" opt; do
+while getopts "i:t:P:aph" opt; do
   case "$opt" in
     i) IMAGE=$OPTARG ;;
     t) TAG=$OPTARG ;;
+    P) PLATFORMS=$OPTARG ;;
     a) VARIANT=alpine ;;
     p) PUSH=true ;;
     h) usage; exit 0 ;;
@@ -63,10 +66,12 @@ while IFS='=' read -r key value; do
   build_args+=(--build-arg "$key=$value")
 done < scripts/security-tools.env
 
-echo "==> building $IMAGE:$TAG"
-docker build -f "$dockerfile" "${build_args[@]}" -t "$IMAGE:$TAG" .
-
+echo "==> building $IMAGE:$TAG ($PLATFORMS)"
+# A multi-platform image cannot be loaded into a classic Docker image store, so
+# without -p it is only built (and kept in the build cache) unless the daemon
+# uses the containerd image store, in which case it is loaded.
 if $PUSH; then
-  echo "==> pushing $IMAGE:$TAG"
-  docker push "$IMAGE:$TAG"
+  docker buildx build --platform "$PLATFORMS" -f "$dockerfile" "${build_args[@]}" -t "$IMAGE:$TAG" --push .
+else
+  docker buildx build --platform "$PLATFORMS" -f "$dockerfile" "${build_args[@]}" -t "$IMAGE:$TAG" --load .
 fi

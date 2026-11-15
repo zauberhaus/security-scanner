@@ -8,6 +8,10 @@ ARG GOVULNCHECK_VERSION
 ARG GOSEC_VERSION
 ARG GITLEAKS_VERSION
 
+LABEL tools.govulncheck.version=$GOVULNCHECK_VERSION \
+      tools.gosec.version=$GOSEC_VERSION \
+      tools.gitleaks.version=$GITLEAKS_VERSION
+
 # GOBIN keeps the binaries out of GOPATH, which the workflow's module cache may
 # shadow. GOTOOLCHAIN=auto lets go.mod ask for a newer Go than the image has.
 # CGO stays on so modules that depend on cgo packages can be type-checked by

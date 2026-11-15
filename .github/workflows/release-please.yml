@@ -1,0 +1,81 @@
+name: Release Check
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - "docker/**"
+      - "scripts/security-tools.env"
+      - "CHANGELOG.md"
+  workflow_dispatch:
+    inputs:
+      version:
+        description: "Release version (e.g. 1.2.3)"
+        required: true
+        type: string
+
+permissions:
+  contents: write
+  issues: write
+  pull-requests: write
+
+jobs:
+  release-please:
+    runs-on: ubuntu-latest
+    steps:
+      # A GitHub App token, not GITHUB_TOKEN: pull requests and tags created
+      # with it start the required checks and the image build (the v* tag
+      # triggers build.yml, which publishes the versioned image); commits made
+      # through the API are signed, which the rulesets require.
+      - name: Create App Token
+        id: app-token
+        uses: actions/create-github-app-token@64ab729a6294000f5aa4a4bc0b73d1f32bc45510 # v3.3.0
+        with:
+          app-id: ${{ secrets.RELEASE_APP_ID }}
+          private-key: ${{ secrets.RELEASE_APP_PRIVATE_KEY }}
+
+      - name: Check Commits
+        id: release
+        uses: googleapis/release-please-action@45996ed1f6d02564a971a2fa1b5860e934307cf7 # v5.0.0
+        with:
+          token: ${{ steps.app-token.outputs.token }}
+          release-type: simple
+          release-as: ${{ github.event_name == 'workflow_dispatch' && inputs.version || '' }}
+
+      - name: Merge Pull Request
+        if: steps.release.outputs.prs_created == 'true'
+        run: gh pr merge --merge --auto "${{ fromJSON(steps.release.outputs.pr || '{}').number }}"
+        env:
+          GH_REPO: ${{ github.repository }} # no checkout, so gh needs the repository
+          GITHUB_TOKEN: ${{ steps.app-token.outputs.token }}
+
+      # Append the versions the images were built with to the release notes.
+      - name: Checkout release
+        if: steps.release.outputs.release_created == 'true'
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ steps.release.outputs.tag_name }}
+
+      - name: Add tool versions to release notes
+        if: steps.release.outputs.release_created == 'true'
+        run: |
+          set -euo pipefail
+          . scripts/security-tools.env
+          debian=$(sed -n 's/^FROM //p' docker/security/Dockerfile)
+          alpine=$(sed -n 's/^FROM //p' docker/security/Dockerfile.alpine)
+          {
+            gh release view "$TAG" --json body --jq .body
+            printf '\n## Versions\n\n'
+            printf '| Component | Version |\n| --- | --- |\n'
+            printf '| govulncheck | %s |\n' "$GOVULNCHECK_VERSION"
+            printf '| gosec | %s |\n' "$GOSEC_VERSION"
+            printf '| gitleaks | %s |\n' "$GITLEAKS_VERSION"
+            printf '| Base image | `%s` |\n' "$debian"
+            printf '| Base image (alpine) | `%s` |\n' "$alpine"
+          } > notes.md
+          gh release edit "$TAG" --notes-file notes.md
+        env:
+          TAG: ${{ steps.release.outputs.tag_name }}
+          GH_REPO: ${{ github.repository }}
+          GITHUB_TOKEN: ${{ steps.app-token.outputs.token }}

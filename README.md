@@ -18,7 +18,7 @@ Both are built for `linux/amd64` and `linux/arm64`. Version tags (`vX.Y.Z`) prod
 | `docker/security/Dockerfile`, `Dockerfile.alpine` | The images |
 | `scripts/security-tools.env` | Pinned tool versions, passed as build arguments |
 | `scripts/build.sh` | Local build, optional push (`-p`), alpine variant (`-a`) |
-| `.github/workflows/build.yml` | Builds on PRs; pushes on `main`, tags and weekly |
+| `.github/workflows/build.yml` | Builds and pushes only when `docker/security` or `scripts/security-tools.env` change (PRs build without pushing) |
 | `.github/workflows/release-please.yml` | Release PR, `CHANGELOG.md` and `v*` tag via release-please |
 | `.github/dependabot.yml` | Updates for the base images and the actions |
 | `scripts/upgrade.sh` | Sets the tool versions to the latest stable releases |

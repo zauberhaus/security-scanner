@@ -5,13 +5,14 @@ on:
     branches: [main]
     tags: ["v*"]
     paths:
-      - docker/**
+      - docker/security/**
       - scripts/security-tools.env
       - .github/workflows/build.yml
   pull_request:
-  schedule:
-    # Weekly rebuild to pick up base image and OS security updates.
-    - cron: "0 3 * * 1"
+    paths:
+      - docker/security/**
+      - scripts/security-tools.env
+      - .github/workflows/build.yml
   workflow_dispatch:
 
 permissions:
@@ -84,7 +85,6 @@ jobs:
             suffix=${{ matrix.suffix }}
           tags: |
             type=raw,value=latest,enable={{is_default_branch}}
-            type=schedule,pattern=nightly
             type=semver,pattern={{version}}
             type=semver,pattern={{major}}.{{minor}}
             type=sha

@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.2.0](https://github.com/zauberhaus/security-scanner/compare/v1.1.0...v1.2.0) (2026-11-18)
+
+
+### Features
+
+* add linter and security check ([b612a36](https://github.com/zauberhaus/security-scanner/commit/b612a3677157f396df9082a50c86ae265cc2d7fd))
+
 ## [1.1.0](https://github.com/zauberhaus/security-scanner/compare/v1.0.1...v1.1.0) (2026-11-18)
 
 

@@ -1,5 +1,17 @@
 # Changelog
 
+## [1.1.0](https://github.com/zauberhaus/security-scanner/compare/v1.0.1...v1.1.0) (2026-11-18)
+
+
+### Features
+
+* add test image ([bf8845d](https://github.com/zauberhaus/security-scanner/commit/bf8845dca73396192977867ed200d2de8d93d629))
+
+
+### Bug Fixes
+
+* use arm64 runner instead of qemu ([79a569c](https://github.com/zauberhaus/security-scanner/commit/79a569c64080184c3ce870daf89a5cd713d37c99))
+
 ## [1.0.1](https://github.com/zauberhaus/security-scanner/compare/v1.0.0...v1.0.1) (2026-11-15)
 
 

@@ -23,7 +23,9 @@ ENV GOBIN=/usr/local/bin \
 
 # git: gitleaks scans the history and actions/checkout needs it for a full
 # clone. build-base: gcc and musl headers for cgo. ca-certificates: TLS roots
-# for the Go module downloads.
+# for the Go module downloads. Not pinned (DL3018): the base image is a moving
+# tag and Alpine drops old package versions, so a pin would break the build.
+# hadolint ignore=DL3018
 RUN apk add --no-cache git build-base ca-certificates
 
 RUN test -n "$GOVULNCHECK_VERSION" && test -n "$GOSEC_VERSION" && test -n "$GITLEAKS_VERSION" \

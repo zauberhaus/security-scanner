@@ -1,0 +1,39 @@
+name: Security
+
+# Scans the Dockerfiles for misconfigurations with free, open-source tools. No
+# path filter: the rulesets require the "security" check on every pull request.
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: security-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  security:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+
+      # Findings that are accepted on purpose are listed with a reason in
+      # .trivyignore.
+      - name: Trivy misconfiguration scan
+        run: |
+          docker run --rm -v "$PWD":/src -w /src aquasec/trivy:0.58.0 \
+            config --exit-code 1 --severity MEDIUM,HIGH,CRITICAL \
+            --ignorefile .trivyignore docker
+
+      # CKV_DOCKER_2 (HEALTHCHECK) and CKV_DOCKER_3 (non-root USER) do not fit
+      # images that only run as short-lived CI job containers, where GitHub
+      # Actions needs to write to the workspace as the image's default user.
+      - name: Checkov Dockerfile scan
+        run: |
+          docker run --rm -v "$PWD":/src -w /src bridgecrew/checkov:3 \
+            -d docker --framework dockerfile --compact \
+            --skip-check CKV_DOCKER_2,CKV_DOCKER_3

@@ -24,27 +24,25 @@ concurrency:
 
 env:
   IMAGE: ghcr.io/${{ github.repository_owner }}/security-scanner
+  DOCKERFILE: docker/security/Dockerfile
+  TOOLS_ENV: scripts/security-tools.env
 
 jobs:
+  # Each architecture is built natively on its own runner (no QEMU) and pushed
+  # by digest; the merge job combines the digests into one multi-arch tag.
   build:
-    runs-on: ubuntu-latest
-    permissions:
-      contents: read
-      packages: write
     strategy:
       fail-fast: false
       matrix:
-        include:         
-          - variant: debian
-            dockerfile: docker/security/Dockerfile
-            suffix: ""
-            runner: ubuntu-26.04
-            arch: amd64
-          - variant: debian
-            dockerfile: docker/security/Dockerfile
-            suffix: ""
-            runner: ubuntu-26.04-arm
-            arch: arm64
+        include:
+          - platform: linux/amd64
+            runner: ubuntu-24.04
+          - platform: linux/arm64
+            runner: ubuntu-24.04-arm
+    runs-on: ${{ matrix.runner }}
+    permissions:
+      contents: read
+      packages: write
     steps:
       - uses: actions/checkout@v7
 
@@ -53,14 +51,15 @@ jobs:
         run: |
           {
             echo 'args<<EOF'
-            grep -E '^[A-Z_]+=' scripts/security-tools.env
+            grep -E '^[A-Z_]+=' "$TOOLS_ENV"
             echo EOF
           } >> "$GITHUB_OUTPUT"
-          # Shown as the package description on ghcr.io.
-          . scripts/security-tools.env
-          echo "description=Go with govulncheck $GOVULNCHECK_VERSION, gosec $GOSEC_VERSION and gitleaks $GITLEAKS_VERSION" >> "$GITHUB_OUTPUT"
 
-      - uses: docker/setup-qemu-action@v4
+      - name: Platform pair
+        run: echo "PAIR=${PLATFORM//\//-}" >> "$GITHUB_ENV"
+        env:
+          PLATFORM: ${{ matrix.platform }}
+
       - uses: docker/setup-buildx-action@v4
 
       - name: Log in to ghcr.io
@@ -71,18 +70,75 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
+      - name: Build and push by digest
+        id: build
+        uses: docker/build-push-action@v7
+        with:
+          context: .
+          file: ${{ env.DOCKERFILE }}
+          platforms: ${{ matrix.platform }}
+          build-args: ${{ steps.tools.outputs.args }}
+          outputs: type=image,name=${{ env.IMAGE }},push-by-digest=true,name-canonical=true,push=${{ github.event_name != 'pull_request' }}
+          cache-from: type=gha,scope=${{ env.PAIR }}
+          cache-to: type=gha,mode=max,scope=${{ env.PAIR }}
+
+      - name: Export digest
+        if: github.event_name != 'pull_request'
+        run: |
+          mkdir -p "${{ runner.temp }}/digests"
+          digest="${{ steps.build.outputs.digest }}"
+          touch "${{ runner.temp }}/digests/${digest#sha256:}"
+
+      - name: Upload digest
+        if: github.event_name != 'pull_request'
+        uses: actions/upload-artifact@v7
+        with:
+          name: digests-${{ env.PAIR }}
+          path: ${{ runner.temp }}/digests/*
+          if-no-files-found: error
+          retention-days: 1
+
+  merge:
+    if: github.event_name != 'pull_request'
+    needs: build
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+    steps:
+      - uses: actions/checkout@v7
+
+      - name: Describe tools
+        id: tools
+        run: |
+          . "$TOOLS_ENV"
+          # Shown as the package description on ghcr.io.
+          echo "description=Go with govulncheck $GOVULNCHECK_VERSION, gosec $GOSEC_VERSION and gitleaks $GITLEAKS_VERSION" >> "$GITHUB_OUTPUT"
+
+      - uses: actions/download-artifact@v8
+        with:
+          path: ${{ runner.temp }}/digests
+          pattern: digests-*
+          merge-multiple: true
+
+      - uses: docker/setup-buildx-action@v4
+
+      - name: Log in to ghcr.io
+        uses: docker/login-action@v4
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
       - name: Image metadata
         id: meta
         uses: docker/metadata-action@v6
         env:
-          # ghcr.io reads the package description from the index of a
-          # multi-platform image, so annotate it as well as the manifests.
-          DOCKER_METADATA_ANNOTATIONS_LEVELS: manifest,index
+          # ghcr.io reads the package description from the index annotations.
+          DOCKER_METADATA_ANNOTATIONS_LEVELS: index
         with:
           images: ${{ env.IMAGE }}
-          flavor: |
-            latest=false
-            suffix=${{ matrix.suffix }}
+          flavor: latest=false
           tags: |
             type=raw,value=latest,enable={{is_default_branch}}
             type=semver,pattern={{version}}
@@ -92,16 +148,14 @@ jobs:
             org.opencontainers.image.title=security-scanner
             org.opencontainers.image.description=${{ steps.tools.outputs.description }}
 
-      - name: Build and push
-        uses: docker/build-push-action@v7
-        with:
-          context: .
-          file: ${{ matrix.dockerfile }}
-          platforms: linux/amd64,linux/arm64
-          push: ${{ github.event_name != 'pull_request' }}
-          tags: ${{ steps.meta.outputs.tags }}
-          labels: ${{ steps.meta.outputs.labels }}
-          annotations: ${{ steps.meta.outputs.annotations }}
-          build-args: ${{ steps.tools.outputs.args }}
-          cache-from: type=gha,scope=${{ matrix.variant }}
-          cache-to: type=gha,mode=max,scope=${{ matrix.variant }}
+      - name: Create manifest list and push
+        working-directory: ${{ runner.temp }}/digests
+        run: |
+          args=()
+          while IFS= read -r t; do args+=(-t "$t"); done < <(jq -r '.tags[]' <<< "$DOCKER_METADATA_OUTPUT_JSON")
+          while IFS= read -r a; do args+=(--annotation "$a"); done < <(jq -r '.annotations[]' <<< "$DOCKER_METADATA_OUTPUT_JSON")
+          for d in *; do args+=("$IMAGE@sha256:$d"); done
+          docker buildx imagetools create "${args[@]}"
+
+      - name: Inspect image
+        run: docker buildx imagetools inspect "$IMAGE:${{ steps.meta.outputs.version }}"

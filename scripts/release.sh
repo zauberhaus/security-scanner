@@ -7,7 +7,7 @@
 #   3. Follows the Release Check workflow that the merge triggers on main.
 #      release-please then opens the release PR, which the workflow merges.
 #   4. Waits for the new GitHub release to appear and prints its version.
-#   5. Follows the Build image run that the new tag triggers, which builds and
+#   5. Follows the Build image run that the new release triggers, which builds and
 #      pushes the images to ghcr.io, and prints their names.
 #
 # Before anything is pushed, both image variants must build for the local
@@ -207,12 +207,12 @@ else
   die "no new release after ${TIMEOUT}s; check ${RELEASE_PR:-the $WORKFLOW runs}"
 fi
 
-# The release tag triggers the image build; the release is not finished until
+# Publishing the release triggers the image build; the release is not finished until
 # the images are pushed.
 log "Waiting for the image build of $TAG"
 BUILD_RUN=
 for _ in $(seq 1 40); do
-  BUILD_RUN=$(gh run list --workflow "$BUILD_WORKFLOW" --event push --branch "$TAG" --limit 1 --json databaseId --jq '.[0].databaseId // empty')
+  BUILD_RUN=$(gh run list --workflow "$BUILD_WORKFLOW" --event release --branch "$TAG" --limit 1 --json databaseId --jq '.[0].databaseId // empty')
   [ -n "$BUILD_RUN" ] && break
   sleep 3
 done

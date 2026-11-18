@@ -1,0 +1,46 @@
+name: Test
+
+# Checks the syntax of every Dockerfile. No path filter: the rulesets require
+# the "test" check on every pull request.
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: test-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+
+      - name: Check Dockerfile syntax and build rules
+        run: |
+          # Parses each Dockerfile and runs BuildKit's built-in lint rules
+          # without building anything; any warning fails the step.
+          status=0
+          for f in docker/*/Dockerfile*; do
+            echo "::group::docker build --check $f"
+            docker build --check -f "$f" . || status=1
+            echo "::endgroup::"
+          done
+          exit $status
+
+      - name: Lint Dockerfiles with hadolint
+        run: |
+          # Errors and warnings fail the job; accepted findings are ignored in
+          # the Dockerfile with a reason.
+          status=0
+          for f in docker/*/Dockerfile*; do
+            echo "::group::hadolint $f"
+            docker run --rm -i hadolint/hadolint:v2.12.0 hadolint --failure-threshold warning - < "$f" || status=1
+            echo "::endgroup::"
+          done
+          exit $status

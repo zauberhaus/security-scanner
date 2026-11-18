@@ -23,7 +23,10 @@ ENV GOBIN=/usr/local/bin \
 
 # GTK and WebKit for Wails: GTK 3 with WebKitGTK 4.1 and GTK 4 with WebKitGTK 6
 # (the default of Wails v3 and its gtk3 build tag). Xvfb and dbus give GUI tests
-# a display, e.g. `xvfb-run -a go test ./...`.
+# a display, e.g. `xvfb-run -a go test ./...`. Not pinned (DL3008): the base
+# image is a moving tag and Debian drops old package versions, so a pin would
+# break the build.
+# hadolint ignore=DL3008
 RUN apt-get update \
  && apt-get install -y --no-install-recommends \
       build-essential pkg-config git curl ca-certificates xz-utils \
@@ -33,6 +36,8 @@ RUN apt-get update \
  && rm -rf /var/lib/apt/lists/*
 
 # Node.js from the official binaries (Playwright needs a current one).
+# pipefail: a failed download must not be hidden by the pipe into tar.
+SHELL ["/bin/bash", "-o", "pipefail", "-c"]
 RUN set -eu; \
     case "$(dpkg --print-architecture)" in amd64) arch=x64 ;; arm64) arch=arm64 ;; *) exit 1 ;; esac; \
     test -n "$NODE_VERSION"; \

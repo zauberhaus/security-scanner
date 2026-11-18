@@ -1,0 +1,4 @@
+# AVD-DS-0002: no non-root USER. The images are CI job containers; GitHub
+# Actions mounts the workspace owned by another uid and writes to it, so
+# running as an unprivileged user breaks checkout and caching.
+AVD-DS-0002

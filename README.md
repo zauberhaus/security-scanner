@@ -18,7 +18,9 @@ Both are built for `linux/amd64` and `linux/arm64`. Version tags (`vX.Y.Z`) prod
 | `docker/security/Dockerfile`, `Dockerfile.alpine` | The images |
 | `scripts/security-tools.env` | Pinned tool versions, passed as build arguments |
 | `scripts/build.sh` | Local build, optional push (`-p`), alpine variant (`-a`) |
-| `.github/workflows/build.yml` | Builds and pushes only when `docker/security` or `scripts/security-tools.env` change (PRs build without pushing) |
+| `.github/workflows/test.yml` | *Test* check: `docker build --check` and hadolint on every Dockerfile |
+| `.github/workflows/security.yml` | *Security* check: Trivy and Checkov misconfiguration scans of the Dockerfiles (accepted findings in `.trivyignore`) |
+| `.github/workflows/build.yml`, `build-test.yml` | Build natively on amd64 and arm64 runners and push the multi-arch images, only when a release is published |
 | `.github/workflows/release-please.yml` | Release PR, `CHANGELOG.md` and `v*` tag via release-please |
 | `.github/dependabot.yml` | Updates for the base images and the actions |
 | `scripts/upgrade.sh` | Sets the tool versions to the latest stable releases |
@@ -35,12 +37,12 @@ scripts/release.sh -v 1.2.0   # force the version
 ```
 
 The merge to `main` starts the *Release Check* workflow. release-please opens a release PR (version,
-`CHANGELOG.md`), which the workflow merges once its checks pass. The resulting `vX.Y.Z` tag
-makes *Build image* publish `X.Y.Z`, `X.Y` and the `-alpine` variants.
+`CHANGELOG.md`), which the workflow merges once its checks pass. The resulting `vX.Y.Z` release
+makes *Build image* and *Build test image* publish `X.Y.Z`, `X.Y` and `latest`.
 
 The workflow needs the repository secrets `RELEASE_APP_ID` and `RELEASE_APP_PRIVATE_KEY` of a
 GitHub App with Contents and Pull requests write access (an app, not a token: its commits are signed).
-The release PR must be allowed to merge, so the *Build image* check should be the only required one.
+The release PR must be allowed to merge, so the required checks must be the *Test* and *Security* jobs, which run on every pull request.
 
 ## Use
 

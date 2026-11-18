@@ -5,6 +5,7 @@
 #
 #   scripts/build.sh                  build ghcr.io/OWNER/security-scanner:dev
 #   scripts/build.sh -a               build the alpine variant
+#   scripts/build.sh -x               build the test image (security-scanner-test)
 #   scripts/build.sh -t 1.2.3 -p      build and push :1.2.3
 #
 # Pushing needs `docker login ghcr.io` with a token that has write:packages.
@@ -15,29 +16,32 @@ cd "$(dirname "$0")/.."
 IMAGE=
 TAG=dev
 VARIANT=debian
+TESTIMG=false
 PUSH=false
 PLATFORMS=linux/amd64,linux/arm64
 
 usage() {
   cat <<EOF2
-Usage: $(basename "$0") [-i IMAGE] [-t TAG] [-P PLATFORMS] [-a] [-p] [-h]
+Usage: $(basename "$0") [-i IMAGE] [-t TAG] [-P PLATFORMS] [-a] [-x] [-p] [-h]
 
   -i IMAGE  image name (default: ghcr.io/OWNER/security-scanner, OWNER from
             the origin remote)
   -t TAG    image tag (default: $TAG); the alpine variant gets "-alpine" added
   -P LIST   comma separated platforms (default: $PLATFORMS)
   -a        build the alpine variant
+  -x        build the test image (docker/test, image security-scanner-test)
   -p        push the image after building it
   -h        show this help
 EOF2
 }
 
-while getopts "i:t:P:aph" opt; do
+while getopts "i:t:P:axph" opt; do
   case "$opt" in
     i) IMAGE=$OPTARG ;;
     t) TAG=$OPTARG ;;
     P) PLATFORMS=$OPTARG ;;
     a) VARIANT=alpine ;;
+    x) TESTIMG=true ;;
     p) PUSH=true ;;
     h) usage; exit 0 ;;
     *) usage >&2; exit 2 ;;
@@ -53,7 +57,12 @@ if [ -z "$IMAGE" ]; then
 fi
 
 dockerfile=docker/security/Dockerfile
-if [ "$VARIANT" = alpine ]; then
+envfile=scripts/security-tools.env
+if $TESTIMG; then
+  dockerfile=docker/test/Dockerfile
+  envfile=scripts/test-tools.env
+  case $IMAGE in *-test) ;; *) IMAGE=$IMAGE-test ;; esac
+elif [ "$VARIANT" = alpine ]; then
   dockerfile=docker/security/Dockerfile.alpine
   TAG=$TAG-alpine
 fi
@@ -64,7 +73,7 @@ while IFS='=' read -r key value; do
     ''|\#*) continue ;;
   esac
   build_args+=(--build-arg "$key=$value")
-done < scripts/security-tools.env
+done < "$envfile"
 
 echo "==> building $IMAGE:$TAG ($PLATFORMS)"
 # A multi-platform image cannot be loaded into a classic Docker image store, so

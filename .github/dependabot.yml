@@ -12,3 +12,8 @@ updates:
     directory: /docker/security
     schedule:
       interval: weekly
+
+  - package-ecosystem: docker
+    directory: /docker/test
+    schedule:
+      interval: weekly

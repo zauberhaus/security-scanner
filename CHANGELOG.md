@@ -1,5 +1,13 @@
 # Changelog
 
+## [1.3.1](https://github.com/zauberhaus/security-scanner/compare/v1.3.0...v1.3.1) (2026-11-19)
+
+
+### Bug Fixes
+
+* add a check gate to the release workflow ([beb0f01](https://github.com/zauberhaus/security-scanner/commit/beb0f0183130cabd17d292a7f788fa3d41149d8a))
+* arm build error ([b902c8c](https://github.com/zauberhaus/security-scanner/commit/b902c8c30121c3c23eee4c11d757a7b8b665510e))
+
 ## [1.3.0](https://github.com/zauberhaus/security-scanner/compare/v1.2.0...v1.3.0) (2026-11-19)
 
 

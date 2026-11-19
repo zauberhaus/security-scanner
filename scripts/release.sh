@@ -10,7 +10,7 @@
 #   5. Follows the Build security-scanner image run that the new release triggers, which builds and
 #      pushes the images to ghcr.io, and prints their names.
 #
-# Before anything is pushed, both image variants must build for the local
+# Before anything is pushed, the image must build for the local
 # platform (scripts/build.sh); -s skips that.
 #
 # With -v an empty commit with a "Release-As: x.y.z" footer is added to the
@@ -130,9 +130,8 @@ if $SKIP_CHECKS; then
 else
   command -v docker >/dev/null || die "docker is required (or use -s)"
   ARCH=$(docker version --format '{{.Server.Arch}}')
-  log "Building the images for linux/$ARCH"
-  ./scripts/build.sh -P "linux/$ARCH" -t release-check || die "debian image build failed"
-  ./scripts/build.sh -P "linux/$ARCH" -t release-check -a || die "alpine image build failed"
+  log "Building the image for linux/$ARCH"
+  ./scripts/build.sh -P "linux/$ARCH" -t release-check || die "image build failed"
 fi
 
 git fetch --quiet origin
@@ -221,5 +220,5 @@ gh run watch "$BUILD_RUN" --exit-status || die "image build failed: $(gh run vie
 
 IMAGE=ghcr.io/$(gh repo view --json owner --jq '.owner.login' | tr '[:upper:]' '[:lower:]')/security-scanner
 VERSION_TAG=${TAG#v}
-log "Published $IMAGE:$VERSION_TAG and $IMAGE:$VERSION_TAG-alpine"
+log "Published $IMAGE:$VERSION_TAG"
 log "Done"

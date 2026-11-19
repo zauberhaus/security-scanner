@@ -62,8 +62,7 @@ jobs:
         run: |
           set -euo pipefail
           . scripts/security-tools.env
-          debian=$(sed -n 's/^FROM //p' docker/security/Dockerfile)
-          alpine=$(sed -n 's/^FROM //p' docker/security/Dockerfile.alpine)
+          base=$(sed -n 's/^FROM //p' docker/security/Dockerfile)
           {
             gh release view "$TAG" --json body --jq .body
             printf '\n## Versions\n\n'
@@ -71,8 +70,7 @@ jobs:
             printf '| govulncheck | %s |\n' "$GOVULNCHECK_VERSION"
             printf '| gosec | %s |\n' "$GOSEC_VERSION"
             printf '| gitleaks | %s |\n' "$GITLEAKS_VERSION"
-            printf '| Base image | `%s` |\n' "$debian"
-            printf '| Base image (alpine) | `%s` |\n' "$alpine"
+            printf '| Base image | `%s` |\n' "$base"
           } > notes.md
           gh release edit "$TAG" --notes-file notes.md
         env:

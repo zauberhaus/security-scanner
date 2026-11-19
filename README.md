@@ -12,8 +12,6 @@ security tools [govulncheck](https://pkg.go.dev/golang.org/x/vuln/cmd/govulnchec
 
 All are built for `linux/amd64` and `linux/arm64` and tagged `X.Y.Z`, `X.Y`, `latest` and the commit
 (`sha-…`) when a release is published. Only the two newest releases are kept (see *Cleanup*).
-`docker/security/Dockerfile.alpine` is an Alpine variant of the security image that is only built locally
-(`scripts/build.sh -a`).
 
 ## Layout
 
@@ -21,7 +19,7 @@ All are built for `linux/amd64` and `linux/arm64` and tagged `X.Y.Z`, `X.Y`, `la
 | --- | --- |
 | `docker/security/`, `docker/go-test-runner/`, `docker/wails3-builder/` | The images |
 | `scripts/security-tools.env`, `go-test-runner-tools.env`, `wails3-builder-tools.env` | Tool versions, passed as build arguments |
-| `scripts/build.sh` | Local build, optional push (`-p`), alpine variant (`-a`), go-test-runner image (`-x`) |
+| `scripts/build.sh` | Local build, optional push (`-p`), go-test-runner image (`-x`) |
 | `scripts/tests.sh` | Runs the *Test* checks locally |
 | `scripts/upgrade.sh` | Sets the tool versions to the latest stable releases |
 | `scripts/release.sh` | Opens the PR, merges it and follows the release |

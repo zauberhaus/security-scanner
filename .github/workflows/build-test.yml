@@ -15,7 +15,7 @@ concurrency:
   cancel-in-progress: false
 
 env:
-  IMAGE: ghcr.io/${{ github.repository_owner }}/security-scanner-test
+  IMAGE: ghcr.io/${{ github.repository_owner }}/test-runner
   DOCKERFILE: docker/test/Dockerfile
   TOOLS_ENV: scripts/test-tools.env
 
@@ -28,8 +28,10 @@ jobs:
       matrix:
         include:
           - platform: linux/amd64
+            pair: linux-amd64
             runner: ubuntu-24.04
           - platform: linux/arm64
+            pair: linux-arm64
             runner: ubuntu-24.04-arm
     runs-on: ${{ matrix.runner }}
     permissions:
@@ -46,11 +48,6 @@ jobs:
             grep -E '^[A-Z_]+=' "$TOOLS_ENV"
             echo EOF
           } >> "$GITHUB_OUTPUT"
-
-      - name: Platform pair
-        run: echo "PAIR=${PLATFORM//\//-}" >> "$GITHUB_ENV"
-        env:
-          PLATFORM: ${{ matrix.platform }}
 
       - uses: docker/setup-buildx-action@v4
 
@@ -70,8 +67,8 @@ jobs:
           platforms: ${{ matrix.platform }}
           build-args: ${{ steps.tools.outputs.args }}
           outputs: type=image,name=${{ env.IMAGE }},push-by-digest=true,name-canonical=true,push=true
-          cache-from: type=gha,scope=${{ env.PAIR }}
-          cache-to: type=gha,mode=max,scope=${{ env.PAIR }}
+          cache-from: type=gha,scope=${{ matrix.pair }}
+          cache-to: type=gha,mode=max,scope=${{ matrix.pair }}
 
       - name: Export digest
         run: |
@@ -82,7 +79,7 @@ jobs:
       - name: Upload digest
         uses: actions/upload-artifact@v7
         with:
-          name: digests-${{ env.PAIR }}
+          name: digests-${{ matrix.pair }}
           path: ${{ runner.temp }}/digests/*
           if-no-files-found: error
           retention-days: 1

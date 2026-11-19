@@ -1,0 +1,146 @@
+name: Build wails builder image
+
+on:
+  # Images are built only when a release is created; the release tag becomes
+  # the image version. Created by release-please with an App token, so the
+  # event does start this workflow.
+  release:
+    types: [published]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: build-builder-${{ github.ref }}
+  cancel-in-progress: false
+
+env:
+  IMAGE: ghcr.io/${{ github.repository_owner }}/builder
+  DOCKERFILE: docker/builder/Dockerfile
+  TOOLS_ENV: scripts/builder-tools.env
+
+jobs:
+  # Each architecture is built natively on its own runner (no QEMU) and pushed
+  # by digest; the merge job combines the digests into one multi-arch tag.
+  build:
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - platform: linux/amd64
+            pair: linux-amd64
+            runner: ubuntu-24.04
+          - platform: linux/arm64
+            pair: linux-arm64
+            runner: ubuntu-24.04-arm
+    runs-on: ${{ matrix.runner }}
+    permissions:
+      contents: read
+      packages: write
+    steps:
+      - uses: actions/checkout@v7
+
+      - name: Read tool versions
+        id: tools
+        run: |
+          {
+            echo 'args<<EOF'
+            grep -E '^[A-Z_]+=' "$TOOLS_ENV"
+            echo EOF
+          } >> "$GITHUB_OUTPUT"
+
+      - uses: docker/setup-buildx-action@v4
+
+      - name: Log in to ghcr.io
+        uses: docker/login-action@v4
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Build and push by digest
+        id: build
+        uses: docker/build-push-action@v7
+        with:
+          context: .
+          file: ${{ env.DOCKERFILE }}
+          platforms: ${{ matrix.platform }}
+          build-args: ${{ steps.tools.outputs.args }}
+          outputs: type=image,name=${{ env.IMAGE }},push-by-digest=true,name-canonical=true,push=true
+          cache-from: type=gha,scope=${{ matrix.pair }}
+          cache-to: type=gha,mode=max,scope=${{ matrix.pair }}
+
+      - name: Export digest
+        run: |
+          mkdir -p "${{ runner.temp }}/digests"
+          digest="${{ steps.build.outputs.digest }}"
+          touch "${{ runner.temp }}/digests/${digest#sha256:}"
+
+      - name: Upload digest
+        uses: actions/upload-artifact@v7
+        with:
+          name: digests-${{ matrix.pair }}
+          path: ${{ runner.temp }}/digests/*
+          if-no-files-found: error
+          retention-days: 1
+
+  merge:
+    needs: build
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+    steps:
+      - uses: actions/checkout@v7
+
+      - name: Describe tools
+        id: tools
+        run: |
+          . "$TOOLS_ENV"
+          # Shown as the package description on ghcr.io.
+          echo "description=Wails build image with Go $GO_VERSION, wails3 $WAILS_VERSION and garble $GARBLE_VERSION" >> "$GITHUB_OUTPUT"
+
+      - uses: actions/download-artifact@v8
+        with:
+          path: ${{ runner.temp }}/digests
+          pattern: digests-*
+          merge-multiple: true
+
+      - uses: docker/setup-buildx-action@v4
+
+      - name: Log in to ghcr.io
+        uses: docker/login-action@v4
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Image metadata
+        id: meta
+        uses: docker/metadata-action@v6
+        env:
+          # ghcr.io reads the package description from the index annotations.
+          DOCKER_METADATA_ANNOTATIONS_LEVELS: index
+        with:
+          images: ${{ env.IMAGE }}
+          flavor: latest=false
+          tags: |
+            type=raw,value=latest
+            type=semver,pattern={{version}}
+            type=semver,pattern={{major}}.{{minor}}
+            type=sha
+          labels: |
+            org.opencontainers.image.title=builder
+            org.opencontainers.image.description=${{ steps.tools.outputs.description }}
+
+      - name: Create manifest list and push
+        working-directory: ${{ runner.temp }}/digests
+        run: |
+          args=()
+          while IFS= read -r t; do args+=(-t "$t"); done < <(jq -r '.tags[]' <<< "$DOCKER_METADATA_OUTPUT_JSON")
+          while IFS= read -r a; do args+=(--annotation "$a"); done < <(jq -r '.annotations[]' <<< "$DOCKER_METADATA_OUTPUT_JSON")
+          for d in *; do args+=("$IMAGE@sha256:$d"); done
+          docker buildx imagetools create "${args[@]}"
+
+      - name: Inspect image
+        run: docker buildx imagetools inspect "$IMAGE:${{ steps.meta.outputs.version }}"

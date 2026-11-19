@@ -71,16 +71,10 @@ jobs:
         if: steps.release.outputs.release_created == 'true'
         run: |
           set -euo pipefail
-          . scripts/security-tools.env
-          base=$(sed -n 's/^FROM //p' docker/security/Dockerfile)
           {
             gh release view "$TAG" --json body --jq .body
-            printf '\n## Versions\n\n'
-            printf '| Component | Version |\n| --- | --- |\n'
-            printf '| govulncheck | %s |\n' "$GOVULNCHECK_VERSION"
-            printf '| gosec | %s |\n' "$GOSEC_VERSION"
-            printf '| gitleaks | %s |\n' "$GITLEAKS_VERSION"
-            printf '| Base image | `%s` |\n' "$base"
+            printf '\n'
+            scripts/versions.sh
           } > notes.md
           gh release edit "$TAG" --notes-file notes.md
         env:

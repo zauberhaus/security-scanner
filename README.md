@@ -23,6 +23,7 @@ All are built for `linux/amd64` and `linux/arm64` and tagged `X.Y.Z`, `X.Y`, `la
 | `scripts/tests.sh` | Runs the *Test* checks locally |
 | `scripts/upgrade.sh` | Sets the tool versions to the latest stable releases |
 | `scripts/release.sh` | Opens the PR, merges it and follows the release |
+| `scripts/versions.sh` | Prints the versions of every image's tools, for the release notes |
 | `scripts/cleanup-packages.sh` | Deletes old image versions (`-n` for a dry run) |
 | `.trivyignore` | Accepted Trivy findings, with the reason |
 

@@ -1,0 +1,39 @@
+name: CodeQL
+
+# The "main-checks" ruleset requires CodeQL results before a pull request can
+# be merged. The only code CodeQL can analyze here is the workflows themselves
+# (language "actions"), e.g. for script injection and unsafe permissions. No
+# path filter, so every pull request gets a result.
+on:
+  push:
+    branches: [main]
+  pull_request:
+  schedule:
+    - cron: "41 3 * * 1"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: codeql-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  analyze:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      actions: read
+      security-events: write
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: github/codeql-action/init@v4
+        with:
+          languages: actions
+          build-mode: none
+
+      - uses: github/codeql-action/analyze@v4
+        with:
+          category: /language:actions

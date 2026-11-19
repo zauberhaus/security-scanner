@@ -1,4 +1,4 @@
-name: Build image
+name: Build go-test-runner image
 
 on:
   # Images are built only when a release is created; the release tag becomes
@@ -11,13 +11,13 @@ permissions:
   contents: read
 
 concurrency:
-  group: build-${{ github.ref }}
+  group: build-go-test-runner-${{ github.ref }}
   cancel-in-progress: false
 
 env:
-  IMAGE: ghcr.io/${{ github.repository_owner }}/security-scanner
-  DOCKERFILE: docker/security/Dockerfile
-  TOOLS_ENV: scripts/security-tools.env
+  IMAGE: ghcr.io/${{ github.repository_owner }}/go-test-runner
+  DOCKERFILE: docker/go-test-runner/Dockerfile
+  TOOLS_ENV: scripts/go-test-runner-tools.env
 
 jobs:
   # Each architecture is built natively on its own runner (no QEMU) and pushed
@@ -28,8 +28,10 @@ jobs:
       matrix:
         include:
           - platform: linux/amd64
+            pair: linux-amd64
             runner: ubuntu-24.04
           - platform: linux/arm64
+            pair: linux-arm64
             runner: ubuntu-24.04-arm
     runs-on: ${{ matrix.runner }}
     permissions:
@@ -46,11 +48,6 @@ jobs:
             grep -E '^[A-Z_]+=' "$TOOLS_ENV"
             echo EOF
           } >> "$GITHUB_OUTPUT"
-
-      - name: Platform pair
-        run: echo "PAIR=${PLATFORM//\//-}" >> "$GITHUB_ENV"
-        env:
-          PLATFORM: ${{ matrix.platform }}
 
       - uses: docker/setup-buildx-action@v4
 
@@ -70,8 +67,8 @@ jobs:
           platforms: ${{ matrix.platform }}
           build-args: ${{ steps.tools.outputs.args }}
           outputs: type=image,name=${{ env.IMAGE }},push-by-digest=true,name-canonical=true,push=true
-          cache-from: type=gha,scope=${{ env.PAIR }}
-          cache-to: type=gha,mode=max,scope=${{ env.PAIR }}
+          cache-from: type=gha,scope=${{ matrix.pair }}
+          cache-to: type=gha,mode=max,scope=${{ matrix.pair }}
 
       - name: Export digest
         run: |
@@ -82,7 +79,7 @@ jobs:
       - name: Upload digest
         uses: actions/upload-artifact@v7
         with:
-          name: digests-${{ env.PAIR }}
+          name: digests-${{ matrix.pair }}
           path: ${{ runner.temp }}/digests/*
           if-no-files-found: error
           retention-days: 1
@@ -101,7 +98,7 @@ jobs:
         run: |
           . "$TOOLS_ENV"
           # Shown as the package description on ghcr.io.
-          echo "description=Go with govulncheck $GOVULNCHECK_VERSION, gosec $GOSEC_VERSION and gitleaks $GITLEAKS_VERSION" >> "$GITHUB_OUTPUT"
+          echo "description=Go test image with GTK, WebKit, Playwright $PLAYWRIGHT_VERSION (Chromium), gocover-cobertura $GOCOVER_COBERTURA_VERSION and gotestfmt $GOTESTFMT_VERSION" >> "$GITHUB_OUTPUT"
 
       - uses: actions/download-artifact@v8
         with:
@@ -133,7 +130,7 @@ jobs:
             type=semver,pattern={{major}}.{{minor}}
             type=sha
           labels: |
-            org.opencontainers.image.title=security-scanner
+            org.opencontainers.image.title=go-test-runner
             org.opencontainers.image.description=${{ steps.tools.outputs.description }}
 
       - name: Create manifest list and push

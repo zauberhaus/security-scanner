@@ -18,6 +18,8 @@ LABEL tools.govulncheck.version=$GOVULNCHECK_VERSION \
 ENV GOBIN=/usr/local/bin \
     GOTOOLCHAIN=auto
 
+RUN apt-get install -y --no-install-recommends build-essential pkg-config libgtk-4-dev libwebkitgtk-6.0-dev libssl-dev
+
 RUN test -n "$GOVULNCHECK_VERSION" && test -n "$GOSEC_VERSION" && test -n "$GITLEAKS_VERSION" \
  && go install golang.org/x/vuln/cmd/govulncheck@${GOVULNCHECK_VERSION} \
  && go install github.com/securego/gosec/v2/cmd/gosec@${GOSEC_VERSION} \

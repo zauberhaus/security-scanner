@@ -32,7 +32,7 @@ RUN apt-get update \
       build-essential pkg-config git curl ca-certificates xz-utils \
       libgtk-3-dev libwebkit2gtk-4.1-dev \
       libgtk-4-dev libwebkitgtk-6.0-dev \
-      xvfb xauth dbus-x11 \
+      xvfb xauth dbus-x11 swtpm openssl libssl-dev \
  && rm -rf /var/lib/apt/lists/*
 
 # Node.js from the official binaries (Playwright needs a current one).

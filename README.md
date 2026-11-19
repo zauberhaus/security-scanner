@@ -33,6 +33,7 @@ All are built for `linux/amd64` and `linux/arm64` and tagged `X.Y.Z`, `X.Y`, `la
 | `test.yml` | every PR, push to `main` | *Test* check: `docker build --check` and hadolint (errors and warnings fail) on every Dockerfile |
 | `security.yml` | every PR, push to `main` | *Security* check: Trivy and Checkov misconfiguration scans of the Dockerfiles |
 | `codeql.yml` | every PR, push to `main`, weekly | CodeQL analysis of the workflows; the `main-checks` ruleset requires its results |
+| `checks-gate.yml` | called by `release-please.yml` | Waits for the *Test*, *Security* and *CodeQL* jobs of the commit and fails if any failed, so nothing is released from a failing commit |
 | `release-please.yml` | push to `main` | Release PR, `CHANGELOG.md`, tag and GitHub release via release-please |
 | `security-scanner.yml`, `go-test-runner.yml`, `wails3-builder.yml` | release published | Build one image each natively on amd64 and arm64 runners (no QEMU), push by digest, then merge into one multi-arch tag |
 | `cleanup.yml` | daily, manual | Deletes old image versions |

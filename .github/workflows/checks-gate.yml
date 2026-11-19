@@ -1,0 +1,56 @@
+name: Checks gate
+
+# Reusable. Waits until the Test, Security and CodeQL jobs of the commit that
+# triggered the calling workflow have finished, and fails unless all of them
+# succeeded. Release Check calls it so that no release, and therefore no image
+# build, comes from a commit with failing checks.
+on:
+  workflow_call:
+
+permissions:
+  contents: read
+  checks: read
+
+jobs:
+  gate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 50
+    steps:
+      - name: Wait for the required checks
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REPO: ${{ github.repository }}
+          SHA: ${{ github.sha }}
+          # Job names of test.yml, security.yml and codeql.yml.
+          REQUIRED: test security analyze
+          TIMEOUT: "2700"
+        run: |
+          deadline=$((SECONDS + TIMEOUT))
+          while :; do
+            runs=$(gh api --paginate "repos/$REPO/commits/$SHA/check-runs?per_page=100" \
+              --jq '.check_runs[] | {name, status, conclusion, started_at}' | jq -s .)
+            pending=() failed=()
+            for name in $REQUIRED; do
+              # The newest run of the check, in case it was re-run.
+              run=$(jq -c --arg n "$name" '[.[] | select(.name == $n)] | sort_by(.started_at) | last // empty' <<< "$runs")
+              if [ -z "$run" ] || [ "$(jq -r .status <<< "$run")" != completed ]; then
+                pending+=("$name")
+              elif [ "$(jq -r .conclusion <<< "$run")" != success ]; then
+                failed+=("$name ($(jq -r .conclusion <<< "$run"))")
+              fi
+            done
+            if [ ${#failed[@]} -gt 0 ]; then
+              echo "::error::Checks failed on $SHA: ${failed[*]}"
+              exit 1
+            fi
+            if [ ${#pending[@]} -eq 0 ]; then
+              echo "All required checks passed on $SHA: $REQUIRED"
+              exit 0
+            fi
+            if [ "$SECONDS" -ge "$deadline" ]; then
+              echo "::error::Timed out waiting for: ${pending[*]}"
+              exit 1
+            fi
+            echo "Waiting for: ${pending[*]}"
+            sleep 30
+          done

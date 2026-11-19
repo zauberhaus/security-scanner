@@ -21,7 +21,17 @@ permissions:
   pull-requests: write
 
 jobs:
+  # The checks of the merge commit run in parallel with this workflow. Nothing
+  # is released, and so no image is built (the builds start on the release),
+  # unless they all passed.
+  gate:
+    permissions:
+      contents: read
+      checks: read
+    uses: ./.github/workflows/checks-gate.yml
+
   release-please:
+    needs: gate
     runs-on: ubuntu-latest
     steps:
       # A GitHub App token, not GITHUB_TOKEN: pull requests and tags created

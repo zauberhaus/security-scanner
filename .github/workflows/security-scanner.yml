@@ -67,8 +67,8 @@ jobs:
           platforms: ${{ matrix.platform }}
           build-args: ${{ steps.tools.outputs.args }}
           outputs: type=image,name=${{ env.IMAGE }},push-by-digest=true,name-canonical=true,push=true
-          cache-from: type=gha,scope=${{ matrix.pair }}
-          cache-to: type=gha,mode=max,scope=${{ matrix.pair }}
+          cache-from: type=gha,scope=security-scanner-${{ matrix.pair }}
+          cache-to: type=gha,mode=max,scope=security-scanner-${{ matrix.pair }}
 
       - name: Export digest
         run: |

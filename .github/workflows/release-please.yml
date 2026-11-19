@@ -21,7 +21,17 @@ permissions:
   pull-requests: write
 
 jobs:
+  # The checks of the merge commit run in parallel with this workflow. Nothing
+  # is released, and so no image is built (the builds start on the release),
+  # unless they all passed.
+  gate:
+    permissions:
+      contents: read
+      checks: read
+    uses: ./.github/workflows/checks-gate.yml
+
   release-please:
+    needs: gate
     runs-on: ubuntu-latest
     steps:
       # A GitHub App token, not GITHUB_TOKEN: pull requests and tags created
@@ -61,16 +71,10 @@ jobs:
         if: steps.release.outputs.release_created == 'true'
         run: |
           set -euo pipefail
-          . scripts/security-tools.env
-          base=$(sed -n 's/^FROM //p' docker/security/Dockerfile)
           {
             gh release view "$TAG" --json body --jq .body
-            printf '\n## Versions\n\n'
-            printf '| Component | Version |\n| --- | --- |\n'
-            printf '| govulncheck | %s |\n' "$GOVULNCHECK_VERSION"
-            printf '| gosec | %s |\n' "$GOSEC_VERSION"
-            printf '| gitleaks | %s |\n' "$GITLEAKS_VERSION"
-            printf '| Base image | `%s` |\n' "$base"
+            printf '\n'
+            scripts/versions.sh
           } > notes.md
           gh release edit "$TAG" --notes-file notes.md
         env:

@@ -18,7 +18,15 @@ LABEL tools.govulncheck.version=$GOVULNCHECK_VERSION \
 ENV GOBIN=/usr/local/bin \
     GOTOOLCHAIN=auto
 
-RUN apt-get install -y --no-install-recommends build-essential pkg-config libgtk-4-dev libwebkitgtk-6.0-dev libssl-dev
+# The cgo dependencies of the modules to scan (GTK 4 and WebKitGTK for Wails,
+# OpenSSL), so that gosec and govulncheck can type-check them. apt-get update
+# is part of the same RUN: the base image has no package lists. Not pinned
+# (DL3008): Debian drops old package versions, so a pin would break the build.
+# hadolint ignore=DL3008
+RUN apt-get update \
+ && apt-get install -y --no-install-recommends \
+      build-essential pkg-config libgtk-4-dev libwebkitgtk-6.0-dev libssl-dev \
+ && rm -rf /var/lib/apt/lists/*
 
 RUN test -n "$GOVULNCHECK_VERSION" && test -n "$GOSEC_VERSION" && test -n "$GITLEAKS_VERSION" \
  && go install golang.org/x/vuln/cmd/govulncheck@${GOVULNCHECK_VERSION} \

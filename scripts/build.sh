@@ -5,7 +5,7 @@
 #
 #   scripts/build.sh                  build ghcr.io/OWNER/security-scanner:dev
 #   scripts/build.sh -a               build the alpine variant
-#   scripts/build.sh -x               build the test image (security-scanner-test)
+#   scripts/build.sh -x               build the go-test-runner image
 #   scripts/build.sh -t 1.2.3 -p      build and push :1.2.3
 #
 # Pushing needs `docker login ghcr.io` with a token that has write:packages.
@@ -29,7 +29,7 @@ Usage: $(basename "$0") [-i IMAGE] [-t TAG] [-P PLATFORMS] [-a] [-x] [-p] [-h]
   -t TAG    image tag (default: $TAG); the alpine variant gets "-alpine" added
   -P LIST   comma separated platforms (default: $PLATFORMS)
   -a        build the alpine variant
-  -x        build the test image (docker/test, image security-scanner-test)
+  -x        build the go-test-runner image (docker/go-test-runner)
   -p        push the image after building it
   -h        show this help
 EOF2
@@ -59,9 +59,9 @@ fi
 dockerfile=docker/security/Dockerfile
 envfile=scripts/security-tools.env
 if $TESTIMG; then
-  dockerfile=docker/test/Dockerfile
-  envfile=scripts/test-tools.env
-  case $IMAGE in *-test) ;; *) IMAGE=$IMAGE-test ;; esac
+  dockerfile=docker/go-test-runner/Dockerfile
+  envfile=scripts/go-test-runner-tools.env
+  case $IMAGE in */security-scanner) IMAGE=${IMAGE%security-scanner}go-test-runner ;; esac
 elif [ "$VARIANT" = alpine ]; then
   dockerfile=docker/security/Dockerfile.alpine
   TAG=$TAG-alpine

@@ -26,7 +26,7 @@ jobs:
     steps:
       # A GitHub App token, not GITHUB_TOKEN: pull requests and tags created
       # with it start the required checks and the image build (the v* tag
-      # triggers build.yml, which publishes the versioned image); commits made
+      # triggers security-scanner.yml, which publishes the versioned image); commits made
       # through the API are signed, which the rulesets require.
       - name: Create App Token
         id: app-token

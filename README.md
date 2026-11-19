@@ -7,8 +7,8 @@ security tools [govulncheck](https://pkg.go.dev/golang.org/x/vuln/cmd/govulnchec
 | Image | Contents | Source |
 | --- | --- | --- |
 | `ghcr.io/<owner>/security-scanner` | Go, govulncheck, gosec, gitleaks (`golang`, Debian) | `docker/security/Dockerfile` |
-| `ghcr.io/<owner>/security-scanner-test` | Go test tools: GTK, WebKit, Playwright, gocover-cobertura, gotestfmt | `docker/test/Dockerfile` |
-| `ghcr.io/<owner>/builder` | Wails build image: Go, wails3, garble, installer and AppImage tooling (Ubuntu) | `docker/builder/Dockerfile` |
+| `ghcr.io/<owner>/go-test-runner` | Go test tools: GTK, WebKit, Playwright, gocover-cobertura, gotestfmt | `docker/go-test-runner/Dockerfile` |
+| `ghcr.io/<owner>/wails3-builder` | Wails build image: Go, wails3, garble, installer and AppImage tooling (Ubuntu) | `docker/wails3-builder/Dockerfile` |
 
 All are built for `linux/amd64` and `linux/arm64` and tagged `X.Y.Z`, `X.Y`, `latest` and the commit
 (`sha-…`) when a release is published. Only the two newest releases are kept (see *Cleanup*).
@@ -19,9 +19,9 @@ All are built for `linux/amd64` and `linux/arm64` and tagged `X.Y.Z`, `X.Y`, `la
 
 | Path | Purpose |
 | --- | --- |
-| `docker/security/`, `docker/test/`, `docker/builder/` | The images |
-| `scripts/security-tools.env`, `test-tools.env`, `builder-tools.env` | Tool versions, passed as build arguments |
-| `scripts/build.sh` | Local build, optional push (`-p`), alpine variant (`-a`), test image (`-x`) |
+| `docker/security/`, `docker/go-test-runner/`, `docker/wails3-builder/` | The images |
+| `scripts/security-tools.env`, `go-test-runner-tools.env`, `wails3-builder-tools.env` | Tool versions, passed as build arguments |
+| `scripts/build.sh` | Local build, optional push (`-p`), alpine variant (`-a`), go-test-runner image (`-x`) |
 | `scripts/tests.sh` | Runs the *Test* checks locally |
 | `scripts/upgrade.sh` | Sets the tool versions to the latest stable releases |
 | `scripts/release.sh` | Opens the PR, merges it and follows the release |
@@ -35,7 +35,7 @@ All are built for `linux/amd64` and `linux/arm64` and tagged `X.Y.Z`, `X.Y`, `la
 | `test.yml` | every PR, push to `main` | *Test* check: `docker build --check` and hadolint (errors and warnings fail) on every Dockerfile |
 | `security.yml` | every PR, push to `main` | *Security* check: Trivy and Checkov misconfiguration scans of the Dockerfiles |
 | `release-please.yml` | push to `main` | Release PR, `CHANGELOG.md`, tag and GitHub release via release-please |
-| `build.yml`, `build-test.yml`, `builder.yml` | release published | Build one image each natively on amd64 and arm64 runners (no QEMU), push by digest, then merge into one multi-arch tag |
+| `security-scanner.yml`, `go-test-runner.yml`, `wails3-builder.yml` | release published | Build one image each natively on amd64 and arm64 runners (no QEMU), push by digest, then merge into one multi-arch tag |
 | `cleanup.yml` | daily, manual | Deletes old image versions |
 
 `.github/dependabot.yml` keeps the base images and the actions current.

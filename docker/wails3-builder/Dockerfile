@@ -1,8 +1,8 @@
 # Wails build image: Go, wails3 and garble, the GUI libraries, the Windows
 # installer maker and the AppImage tooling, installed once instead of on every
-# run. The versions come from scripts/builder-tools.env.
+# run. The versions come from scripts/wails3-builder-tools.env.
 #
-# .github/workflows/builder.yml builds it for linux/amd64 and linux/arm64 on
+# .github/workflows/wails3-builder.yml builds it for linux/amd64 and linux/arm64 on
 # native runners when a release is published. To pick up newer packages, change
 # the REFRESH line.
 

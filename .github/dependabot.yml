@@ -14,11 +14,11 @@ updates:
       interval: weekly
 
   - package-ecosystem: docker
-    directory: /docker/test
+    directory: /docker/go-test-runner
     schedule:
       interval: weekly
 
   - package-ecosystem: docker
-    directory: /docker/builder
+    directory: /docker/wails3-builder
     schedule:
       interval: weekly

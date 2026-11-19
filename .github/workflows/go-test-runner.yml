@@ -1,4 +1,4 @@
-name: Build wails builder image
+name: Build go-test-runner image
 
 on:
   # Images are built only when a release is created; the release tag becomes
@@ -11,13 +11,13 @@ permissions:
   contents: read
 
 concurrency:
-  group: build-builder-${{ github.ref }}
+  group: build-go-test-runner-${{ github.ref }}
   cancel-in-progress: false
 
 env:
-  IMAGE: ghcr.io/${{ github.repository_owner }}/builder
-  DOCKERFILE: docker/builder/Dockerfile
-  TOOLS_ENV: scripts/builder-tools.env
+  IMAGE: ghcr.io/${{ github.repository_owner }}/go-test-runner
+  DOCKERFILE: docker/go-test-runner/Dockerfile
+  TOOLS_ENV: scripts/go-test-runner-tools.env
 
 jobs:
   # Each architecture is built natively on its own runner (no QEMU) and pushed
@@ -98,7 +98,7 @@ jobs:
         run: |
           . "$TOOLS_ENV"
           # Shown as the package description on ghcr.io.
-          echo "description=Wails build image with Go $GO_VERSION, wails3 $WAILS_VERSION and garble $GARBLE_VERSION" >> "$GITHUB_OUTPUT"
+          echo "description=Go test image with GTK, WebKit, Playwright $PLAYWRIGHT_VERSION (Chromium), gocover-cobertura $GOCOVER_COBERTURA_VERSION and gotestfmt $GOTESTFMT_VERSION" >> "$GITHUB_OUTPUT"
 
       - uses: actions/download-artifact@v8
         with:
@@ -130,7 +130,7 @@ jobs:
             type=semver,pattern={{major}}.{{minor}}
             type=sha
           labels: |
-            org.opencontainers.image.title=builder
+            org.opencontainers.image.title=go-test-runner
             org.opencontainers.image.description=${{ steps.tools.outputs.description }}
 
       - name: Create manifest list and push

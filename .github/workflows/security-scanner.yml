@@ -1,4 +1,4 @@
-name: Build image
+name: Build security-scanner image
 
 on:
   # Images are built only when a release is created; the release tag becomes
@@ -11,7 +11,7 @@ permissions:
   contents: read
 
 concurrency:
-  group: build-${{ github.ref }}
+  group: build-security-scanner-${{ github.ref }}
   cancel-in-progress: false
 
 env:

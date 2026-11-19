@@ -1,7 +1,7 @@
 # Test image: everything to build and test GUI examples like ui_shell/examples:
 # Go with cgo, GTK and WebKit (Wails), Playwright with Chromium, Xvfb for a
 # display, gocover-cobertura and gotestfmt. The versions come from
-# scripts/test-tools.env. Build with scripts/build.sh -x.
+# scripts/go-test-runner-tools.env. Build with scripts/build.sh -x.
 
 FROM golang:1.27
 

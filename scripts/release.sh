@@ -7,7 +7,7 @@
 #   3. Follows the Release Check workflow that the merge triggers on main.
 #      release-please then opens the release PR, which the workflow merges.
 #   4. Waits for the new GitHub release to appear and prints its version.
-#   5. Follows the Build image run that the new release triggers, which builds and
+#   5. Follows the Build security-scanner image run that the new release triggers, which builds and
 #      pushes the images to ghcr.io, and prints their names.
 #
 # Before anything is pushed, both image variants must build for the local
@@ -22,7 +22,7 @@ set -euo pipefail
 
 BASE=main
 WORKFLOW=release-please.yml
-BUILD_WORKFLOW=build.yml
+BUILD_WORKFLOW=security-scanner.yml
 TIMEOUT=900
 
 cd "$(dirname "$0")/.."

@@ -22,7 +22,7 @@ set -euo pipefail
 KEEP=2
 GRACE_HOURS=${GRACE_HOURS:-24}
 DRY_RUN=false
-PACKAGES=(security-scanner security-scanner-test builder)
+PACKAGES=(security-scanner go-test-runner wails3-builder)
 
 while getopts ":nk:h" opt; do
   case $opt in

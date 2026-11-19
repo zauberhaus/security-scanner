@@ -1,5 +1,17 @@
 # Changelog
 
+## [1.3.0](https://github.com/zauberhaus/security-scanner/compare/v1.2.0...v1.3.0) (2026-11-19)
+
+
+### Features
+
+* add wails builder image ([9b8f88d](https://github.com/zauberhaus/security-scanner/commit/9b8f88dd45cbe15fc7f51ab7ddcfe017363944bc))
+
+
+### Bug Fixes
+
+* add codeql scanning ([c44fc01](https://github.com/zauberhaus/security-scanner/commit/c44fc0164ab67d13f45d219080752e09af4f8deb))
+
 ## [1.2.0](https://github.com/zauberhaus/security-scanner/compare/v1.1.0...v1.2.0) (2026-11-18)
 
 

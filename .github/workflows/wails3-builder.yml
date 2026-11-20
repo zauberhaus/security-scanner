@@ -20,20 +20,41 @@ env:
   TOOLS_ENV: scripts/wails3-builder-tools.env
 
 jobs:
+  runners:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    outputs:
+      linux_amd64: ${{ steps.pick.outputs.linux_amd64 }}
+      linux_arm64: ${{ steps.pick.outputs.linux_arm64 }}
+    steps:
+      - uses: actions/checkout@v7
+
+      # A self-hosted runner when an idle one is online, else the hosted one.
+      # Set the repository variable USE_SELF_HOSTED to false to force hosted.
+      - name: Pick
+        id: pick
+        uses: ./.github/actions/choose-runners
+        with:
+          app-id: ${{ secrets.RELEASE_APP_ID }}
+          private-key: ${{ secrets.RELEASE_APP_PRIVATE_KEY }}
+          use-self-hosted: ${{ vars.USE_SELF_HOSTED }}
+
   # Each architecture is built natively on its own runner (no QEMU) and pushed
   # by digest; the merge job combines the digests into one multi-arch tag.
   build:
+    needs: runners
     strategy:
       fail-fast: false
       matrix:
         include:
           - platform: linux/amd64
             pair: linux-amd64
-            runner: ubuntu-24.04
+            runner: ${{ needs.runners.outputs.linux_amd64 }}
           - platform: linux/arm64
             pair: linux-arm64
-            runner: ubuntu-24.04-arm
-    runs-on: ${{ matrix.runner }}
+            runner: ${{ needs.runners.outputs.linux_arm64 }}
+    runs-on: ${{ fromJSON(matrix.runner) }}
     permissions:
       contents: read
       packages: write

@@ -47,7 +47,7 @@ done
 command -v docker >/dev/null || { echo "error: docker is required" >&2; exit 1; }
 
 if [ -z "$IMAGE" ]; then
-  owner=$(git remote get-url origin 2>/dev/null | sed -E 's#^(git@github.com:|https://github.com/)([^/]+)/.*#\2#' || true)
+  owner=$(git remote get-url origin 2>/dev/null | sed -E 's#^(git@github.com:|https://([^/@]*@)?github.com/)([^/]+)/.*#\3#' || true)
   [ -n "$owner" ] || { echo "error: cannot detect the owner; pass -i IMAGE" >&2; exit 1; }
   IMAGE=ghcr.io/$(printf '%s' "$owner" | tr '[:upper:]' '[:lower:]')/security-scanner
 fi

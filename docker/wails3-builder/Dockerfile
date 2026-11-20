@@ -74,6 +74,16 @@ RUN sed -i "s#http://\(archive\|security\).ubuntu.com/ubuntu/#${UBUNTU_MIRROR}#"
         nsis \
     && rm -rf /var/lib/apt/lists/*
 
+# The GTK plugin of linuxdeploy (used by `wails3 generate appimage`) copies
+# these directories into the AppImage and fails if one is missing: the GTK 4
+# modules (Ubuntu only creates them with optional packages such as
+# libgtk-4-media-gstreamer) and the gdk-pixbuf binary directory (loaders are
+# built into gdk-pixbuf 2.44, so there is nothing to install). Provide empty
+# ones; the plugin only copies them.
+RUN libdir="/usr/lib/$(gcc -dumpmachine)" \
+    && mkdir -p "$libdir/gtk-4.0" \
+    && mkdir -p "$(pkg-config --variable=gdk_pixbuf_moduledir gdk-pixbuf-2.0)"
+
 COPY --link --from=go /usr/local/go /usr/local/go
 ENV PATH=/usr/local/go/bin:$PATH
 

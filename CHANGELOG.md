@@ -1,5 +1,14 @@
 # Changelog
 
+## [1.3.2](https://github.com/zauberhaus/security-scanner/compare/v1.3.1...v1.3.2) (2026-11-20)
+
+
+### Bug Fixes
+
+* add missing AppImage plugins ([cd64cdc](https://github.com/zauberhaus/security-scanner/commit/cd64cdc8425bd935de76068f41f9658c8d80e91e))
+* add missing dependencies ([e2161ff](https://github.com/zauberhaus/security-scanner/commit/e2161ffe730f47f8d42b77f1362ec83eb8e310c8))
+* local build on mac ([3c05107](https://github.com/zauberhaus/security-scanner/commit/3c0510798ba96569999b00262ab885acfe6cb8de))
+
 ## [1.3.1](https://github.com/zauberhaus/security-scanner/compare/v1.3.0...v1.3.1) (2026-11-19)
 
 

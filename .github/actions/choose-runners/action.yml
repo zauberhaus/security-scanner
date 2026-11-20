@@ -1,0 +1,105 @@
+name: Choose runners
+description: >
+  For each build target, picks a self-hosted runner when an idle one is online,
+  else the GitHub-hosted runner. The outputs are JSON, for fromJSON() in runs-on.
+
+# runs-on is fixed when a job is queued, so this has to run in a job before the
+# jobs that use the runners. A self-hosted runner has the labels self-hosted,
+# its OS (Linux, macOS) and its architecture (X64, ARM64) by itself.
+#
+# Listing runners needs the permission "Administration: read" on the GitHub
+# App. Without the App, the permission, or with use-self-hosted set to false,
+# every target uses the hosted runner. Secrets are not available in a composite
+# action: the workflow passes them as inputs. Use it after the checkout:
+#
+#   - uses: ./.github/actions/choose-runners
+#     id: runners
+#     with:
+#       app-id: ${{ secrets.RELEASE_APP_ID }}
+#       private-key: ${{ secrets.RELEASE_APP_PRIVATE_KEY }}
+#       use-self-hosted: ${{ vars.USE_SELF_HOSTED }}
+#   ... fromJSON(steps.runners.outputs.linux_amd64)
+
+inputs:
+  app-id:
+    description: ID of the GitHub App (RELEASE_APP_ID).
+    required: false
+    default: ""
+  private-key:
+    description: Private key of the GitHub App (RELEASE_APP_PRIVATE_KEY).
+    required: false
+    default: ""
+  use-self-hosted:
+    description: Set to "false" to use the hosted runners only.
+    required: false
+    default: ""
+
+outputs:
+  linux_amd64:
+    description: Runner for Linux amd64, as JSON.
+    value: ${{ steps.pick.outputs.linux_amd64 }}
+  linux_arm64:
+    description: Runner for Linux arm64, as JSON.
+    value: ${{ steps.pick.outputs.linux_arm64 }}
+  macos:
+    description: Runner for macOS arm64, as JSON.
+    value: ${{ steps.pick.outputs.macos }}
+  macos_amd64:
+    description: Runner for macOS Intel (amd64), as JSON.
+    value: ${{ steps.pick.outputs.macos_amd64 }}
+
+runs:
+  using: composite
+  steps:
+    - name: Create App token
+      id: app-token
+      if: inputs.use-self-hosted != 'false' && inputs.app-id != '' && inputs.private-key != ''
+      continue-on-error: true
+      uses: actions/create-github-app-token@64ab729a6294000f5aa4a4bc0b73d1f32bc45510 # v3.3.0
+      with:
+        app-id: ${{ inputs.app-id }}
+        private-key: ${{ inputs.private-key }}
+        permission-administration: read
+
+    - name: Pick
+      id: pick
+      shell: bash
+      env:
+        GH_TOKEN: ${{ steps.app-token.outputs.token }}
+        USE_SELF_HOSTED: ${{ inputs.use-self-hosted }}
+      run: |
+        runners='{"runners":[]}'
+        if [ "$USE_SELF_HOSTED" = false ]; then
+          echo "Self-hosted runners are switched off (USE_SELF_HOSTED=false)."
+        elif [ -z "$GH_TOKEN" ]; then
+          echo "::notice::No token to list the runners: using the hosted runners."
+        elif ! runners="$(gh api --paginate "repos/$GITHUB_REPOSITORY/actions/runners?per_page=100" --jq '.runners[]' | jq -s '{runners: .}')"; then
+          echo "::notice::Could not list the runners: using the hosted runners."
+          runners='{"runners":[]}'
+        fi
+
+        # pick NAME FALLBACK LABEL...: the labels of an idle online runner
+        # that has all of them, as a JSON array, else the hosted runner.
+        pick() {
+          name="$1"; fallback="$2"; shift 2
+          want="$(printf '%s\n' "$@" | jq -R . | jq -sc .)"
+          found="$(jq -r --argjson want "$want" '
+            [.runners[]
+              | select(.status == "online" and .busy == false)
+              | select(([.labels[].name] | map(ascii_downcase)) as $have
+                       | all($want[] | ascii_downcase; . as $l | $have | index($l)))]
+            | length' <<<"$runners")"
+          if [ "$found" -gt 0 ]; then
+            value="$(jq -nc --argjson want "$want" '["self-hosted"] + $want')"
+            echo "$name: self-hosted $value"
+          else
+            value="\"$fallback\""
+            echo "$name: $fallback"
+          fi
+          echo "$name=$value" >> "$GITHUB_OUTPUT"
+        }
+
+        pick linux_amd64 ubuntu-24.04 linux x64
+        pick linux_arm64 ubuntu-24.04-arm linux arm64
+        pick macos macos-15 macos arm64
+        pick macos_amd64 macos-15-intel macos x64

@@ -1,2 +1,4 @@
+# None of the Dockerfiles copies files from the build context (the tool
+# versions are passed as build arguments by scripts/build.sh and the workflows),
+# so nothing but the Dockerfile itself has to be sent to the builder.
 *
-!scripts/security-tools.env

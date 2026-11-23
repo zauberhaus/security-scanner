@@ -5,6 +5,7 @@
 #
 #   scripts/build.sh                  build ghcr.io/OWNER/security-scanner:dev
 #   scripts/build.sh -x               build the go-test-runner image
+#   scripts/build.sh -w               build the wails3-builder image
 #   scripts/build.sh -t 1.2.3 -p      build and push :1.2.3
 #
 # Pushing needs `docker login ghcr.io` with a token that has write:packages.
@@ -15,29 +16,32 @@ cd "$(dirname "$0")/.."
 IMAGE=
 TAG=dev
 TESTIMG=false
+WAILS=false
 PUSH=false
 PLATFORMS=linux/amd64,linux/arm64
 
 usage() {
   cat <<EOF2
-Usage: $(basename "$0") [-i IMAGE] [-t TAG] [-P PLATFORMS] [-x] [-p] [-h]
+Usage: $(basename "$0") [-i IMAGE] [-t TAG] [-P PLATFORMS] [-x] [-w] [-p] [-h]
 
   -i IMAGE  image name (default: ghcr.io/OWNER/security-scanner, OWNER from
             the origin remote)
   -t TAG    image tag (default: $TAG)
   -P LIST   comma separated platforms (default: $PLATFORMS)
   -x        build the go-test-runner image (docker/go-test-runner)
+  -w        build the wails3-builder image (docker/wails3-builder)
   -p        push the image after building it
   -h        show this help
 EOF2
 }
 
-while getopts "i:t:P:xph" opt; do
+while getopts "i:t:P:xwph" opt; do
   case "$opt" in
     i) IMAGE=$OPTARG ;;
     t) TAG=$OPTARG ;;
     P) PLATFORMS=$OPTARG ;;
     x) TESTIMG=true ;;
+    w) WAILS=true ;;
     p) PUSH=true ;;
     h) usage; exit 0 ;;
     *) usage >&2; exit 2 ;;
@@ -58,6 +62,13 @@ if $TESTIMG; then
   dockerfile=docker/go-test-runner/Dockerfile
   envfile=scripts/go-test-runner-tools.env
   case $IMAGE in */security-scanner) IMAGE=${IMAGE%security-scanner}go-test-runner ;; esac
+fi
+
+if $WAILS; then
+  $TESTIMG && { echo "error: -x and -w cannot be combined" >&2; exit 2; }
+  dockerfile=docker/wails3-builder/Dockerfile
+  envfile=scripts/wails3-builder-tools.env
+  case $IMAGE in */security-scanner) IMAGE=${IMAGE%security-scanner}wails3-builder ;; esac
 fi
 
 build_args=()

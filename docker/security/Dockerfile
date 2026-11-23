@@ -2,7 +2,14 @@
 # instead of compiled on every run. The versions come from
 # scripts/security-tools.env. Build with scripts/build.sh.
 
-FROM golang:1.27
+# Debian slim plus the Go toolchain copied from the golang image: the full
+# golang image adds ~500 MB (mercurial, subversion, ...) that is not needed.
+FROM golang:1.27 AS go
+FROM debian:trixie-slim
+
+COPY --from=go /usr/local/go /usr/local/go
+ENV GOPATH=/go \
+    PATH=/go/bin:/usr/local/go/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
 
 ARG GOVULNCHECK_VERSION
 ARG GOSEC_VERSION
@@ -23,9 +30,9 @@ ENV GOBIN=/usr/local/bin \
 # is part of the same RUN: the base image has no package lists. Not pinned
 # (DL3008): Debian drops old package versions, so a pin would break the build.
 # hadolint ignore=DL3008
-RUN apt-get update \
- && apt-get install -y --no-install-recommends \
-      build-essential pkg-config libgtk-4-dev libwebkitgtk-6.0-dev libssl-dev \
+RUN apt-get -o Acquire::Retries=5 update \
+ && apt-get -o Acquire::Retries=5 install -y --no-install-recommends \
+      build-essential git ca-certificates pkg-config libgtk-4-dev libwebkitgtk-6.0-dev libssl-dev \
  && rm -rf /var/lib/apt/lists/*
 
 RUN test -n "$GOVULNCHECK_VERSION" && test -n "$GOSEC_VERSION" && test -n "$GITLEAKS_VERSION" \

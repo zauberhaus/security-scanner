@@ -10,8 +10,9 @@
 #   5. Follows the Build security-scanner image run that the new release triggers, which builds and
 #      pushes the images to ghcr.io, and prints their names.
 #
-# Before anything is pushed, the image must build for the local
-# platform (scripts/build.sh); -s skips that.
+# Before anything is pushed, scripts/tests.sh and scripts/security.sh must pass
+# (-s skips them) and all three images (security-scanner, go-test-runner,
+# wails3-builder) must build for the local platform (-b skips that).
 #
 # With -v an empty commit with a "Release-As: x.y.z" footer is added to the
 # branch, which makes release-please use that version.
@@ -29,14 +30,15 @@ cd "$(dirname "$0")/.."
 
 usage() {
   cat <<EOF
-Usage: $(basename "$0") [-v VERSION] [-t SECONDS] [-n] [-y] [-s]
+Usage: $(basename "$0") [-v VERSION] [-t SECONDS] [-n] [-y] [-s] [-b]
 
   -v VERSION  force the release version (e.g. 1.6.0) by adding a
               "Release-As: VERSION" commit to the branch before the PR
   -t SECONDS  how long to wait for the new release (default: $TIMEOUT)
   -n          only create the PR; do not wait, merge or start a release
   -y          do not ask for confirmation before merging
-  -s          skip the test build of the images
+  -s          skip the tests and security checks (scripts/tests.sh, security.sh)
+  -b          skip the test build of the images
   -h          show this help
 EOF
 }
@@ -48,14 +50,16 @@ VERSION=
 PR_ONLY=false
 ASSUME_YES=false
 SKIP_CHECKS=false
+SKIP_BUILD=false
 
-while getopts "v:t:nysh" opt; do
+while getopts "v:t:nysbh" opt; do
   case "$opt" in
     v) VERSION=$OPTARG ;;
     t) TIMEOUT=$OPTARG ;;
     n) PR_ONLY=true ;;
     y) ASSUME_YES=true ;;
     s) SKIP_CHECKS=true ;;
+    b) SKIP_BUILD=true ;;
     h) usage; exit 0 ;;
     *) usage >&2; exit 2 ;;
   esac
@@ -126,12 +130,25 @@ HEAD_BRANCH=$(git branch --show-current)
 [ -z "$(git status --porcelain --untracked-files=no)" ] || die "uncommitted changes; commit or stash them first"
 
 if $SKIP_CHECKS; then
-  log "Skipping the test build"
+  log "Skipping the tests and security checks"
 else
   command -v docker >/dev/null || die "docker is required (or use -s)"
+  log "Running the tests"
+  ./scripts/tests.sh || die "tests failed"
+  log "Running the security checks"
+  ./scripts/security.sh || die "security checks failed"
+fi
+
+if $SKIP_BUILD; then
+  log "Skipping the test build"
+else
+  command -v docker >/dev/null || die "docker is required (or use -b)"
   ARCH=$(docker version --format '{{.Server.Arch}}')
-  log "Building the image for linux/$ARCH"
-  ./scripts/build.sh -P "linux/$ARCH" -t release-check || die "image build failed"
+  for flag in "" -x -w; do
+    log "Building the image ${flag:-security-scanner} for linux/$ARCH"
+    # shellcheck disable=SC2086
+    ./scripts/build.sh $flag -P "linux/$ARCH" -t release-check || die "image build failed"
+  done
 fi
 
 git fetch --quiet origin

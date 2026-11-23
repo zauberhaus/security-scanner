@@ -3,7 +3,12 @@
 # display, gocover-cobertura and gotestfmt. The versions come from
 # scripts/go-test-runner-tools.env. Build with scripts/build.sh -x.
 
-FROM golang:1.27
+FROM golang:1.27 AS go
+FROM debian:trixie-slim
+
+COPY --from=go /usr/local/go /usr/local/go
+ENV GOPATH=/go \
+    PATH=/go/bin:/usr/local/go/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
 
 ARG GOCOVER_COBERTURA_VERSION
 ARG GOTESTFMT_VERSION
@@ -28,7 +33,6 @@ ENV GOBIN=/usr/local/bin \
 # break the build.
 # hadolint ignore=DL3008
 RUN apt-get -o Acquire::Retries=5 update \
- && apt-get -o Acquire::Retries=5 upgrade -y \
  && apt-get -o Acquire::Retries=5 install -y --no-install-recommends \
       build-essential pkg-config git curl ca-certificates xz-utils \
       libgtk-3-dev libwebkit2gtk-4.1-dev \
@@ -50,7 +54,7 @@ RUN set -eu; \
 # PLAYWRIGHT_BROWSERS_PATH.
 RUN test -n "$PLAYWRIGHT_VERSION" \
  && npm install -g "playwright@${PLAYWRIGHT_VERSION}" \
- && playwright install --with-deps chromium \
+ && playwright install --only-shell chromium \
  && rm -rf /var/lib/apt/lists/* /root/.npm
 
 RUN test -n "$GOCOVER_COBERTURA_VERSION" && test -n "$GOTESTFMT_VERSION" \

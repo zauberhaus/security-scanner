@@ -68,7 +68,6 @@ ARG UBUNTU_MIRROR=http://azure.archive.ubuntu.com/ubuntu/
 # hadolint ignore=DL3008
 RUN sed -i "s#http://\(archive\|security\).ubuntu.com/ubuntu/#${UBUNTU_MIRROR}#" /etc/apt/sources.list.d/ubuntu.sources \
     && apt-get -o Acquire::Retries=5 update \
-    && apt-get -o Acquire::Retries=5 upgrade -y --no-install-recommends \
     && apt-get -o Acquire::Retries=5 install -y --no-install-recommends \
         ca-certificates curl wget git file zip xz-utils squashfs-tools \
         build-essential pkg-config libgtk-4-dev libwebkitgtk-6.0-dev \

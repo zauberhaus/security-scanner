@@ -27,9 +27,9 @@ ENV GOBIN=/usr/local/bin \
 # image is a moving tag and Debian drops old package versions, so a pin would
 # break the build.
 # hadolint ignore=DL3008
-RUN apt update \
- && apt update -y \
- && apt install -y --no-install-recommends \
+RUN apt-get -o Acquire::Retries=5 update \
+ && apt-get -o Acquire::Retries=5 upgrade -y \
+ && apt-get -o Acquire::Retries=5 install -y --no-install-recommends \
       build-essential pkg-config git curl ca-certificates xz-utils \
       libgtk-3-dev libwebkit2gtk-4.1-dev \
       libgtk-4-dev libwebkitgtk-6.0-dev \

@@ -10,7 +10,8 @@
 #   5. Follows the Build security-scanner image run that the new release triggers, which builds and
 #      pushes the images to ghcr.io, and prints their names.
 #
-# Before anything is pushed, the image must build for the local
+# Before anything is pushed, scripts/security.sh must pass and all three images
+# (security-scanner, go-test-runner, wails3-builder) must build for the local
 # platform (scripts/build.sh); -s skips that.
 #
 # With -v an empty commit with a "Release-As: x.y.z" footer is added to the
@@ -36,7 +37,7 @@ Usage: $(basename "$0") [-v VERSION] [-t SECONDS] [-n] [-y] [-s]
   -t SECONDS  how long to wait for the new release (default: $TIMEOUT)
   -n          only create the PR; do not wait, merge or start a release
   -y          do not ask for confirmation before merging
-  -s          skip the test build of the images
+  -s          skip the security checks and the test build of the images
   -h          show this help
 EOF
 }
@@ -126,12 +127,19 @@ HEAD_BRANCH=$(git branch --show-current)
 [ -z "$(git status --porcelain --untracked-files=no)" ] || die "uncommitted changes; commit or stash them first"
 
 if $SKIP_CHECKS; then
-  log "Skipping the test build"
+  log "Skipping the security checks and the test build"
 else
   command -v docker >/dev/null || die "docker is required (or use -s)"
+  log "Running the checks"
+  ./scripts/tests.sh || die "format checks failed"
+  log "Running the security checks"
+  ./scripts/security.sh || die "security checks failed"
   ARCH=$(docker version --format '{{.Server.Arch}}')
-  log "Building the image for linux/$ARCH"
-  ./scripts/build.sh -P "linux/$ARCH" -t release-check || die "image build failed"
+  for flag in "" -x -w; do
+    log "Building the image ${flag:-security-scanner} for linux/$ARCH"
+    # shellcheck disable=SC2086
+    ./scripts/build.sh $flag -P "linux/$ARCH" -t release-check || die "image build failed"
+  done
 fi
 
 git fetch --quiet origin

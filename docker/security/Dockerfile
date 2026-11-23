@@ -23,8 +23,9 @@ ENV GOBIN=/usr/local/bin \
 # is part of the same RUN: the base image has no package lists. Not pinned
 # (DL3008): Debian drops old package versions, so a pin would break the build.
 # hadolint ignore=DL3008
-RUN apt-get update \
- && apt-get install -y --no-install-recommends \
+RUN apt-get -o Acquire::Retries=5 update \
+ && apt-get -o Acquire::Retries=5 upgrade -y --no-install-recommends \
+ && apt-get -o Acquire::Retries=5 install -y --no-install-recommends \
       build-essential pkg-config libgtk-4-dev libwebkitgtk-6.0-dev libssl-dev \
  && rm -rf /var/lib/apt/lists/*
 

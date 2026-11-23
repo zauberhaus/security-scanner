@@ -1,5 +1,20 @@
 # Changelog
 
+## [1.4.0](https://github.com/zauberhaus/security-scanner/compare/v1.3.2...v1.4.0) (2026-11-23)
+
+
+### Features
+
+* add support for self-hosted runners ([cd320c0](https://github.com/zauberhaus/security-scanner/commit/cd320c0a9928628b0ac7519253007321b81db416))
+
+
+### Bug Fixes
+
+* add apt upgrade to other docker files ([47a7a0d](https://github.com/zauberhaus/security-scanner/commit/47a7a0d2b330aa452913e835d7cb9fae39488817))
+* failed check workflows ([8b20712](https://github.com/zauberhaus/security-scanner/commit/8b20712711a76a9cc488a4ffa6d4d789a9df5f96))
+* reduce image sizes ([87cb63c](https://github.com/zauberhaus/security-scanner/commit/87cb63c29d21b0bf9b64c727192a2cf39d8c3662))
+* upgrade apt packages ([4b38528](https://github.com/zauberhaus/security-scanner/commit/4b38528b5c2909587b69a3eda91f229efc5c2bfe))
+
 ## [1.3.2](https://github.com/zauberhaus/security-scanner/compare/v1.3.1...v1.3.2) (2026-11-20)
 
 

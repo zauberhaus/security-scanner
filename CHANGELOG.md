@@ -1,5 +1,17 @@
 # Changelog
 
+## [1.5.0](https://github.com/zauberhaus/security-scanner/compare/v1.4.0...v1.5.0) (2026-11-24)
+
+
+### Features
+
+* add golangci to security image ([6490f24](https://github.com/zauberhaus/security-scanner/commit/6490f2445ac79db0d1ab04c8b565d443b29ed501))
+
+
+### Bug Fixes
+
+* cleanup caches ([076adf8](https://github.com/zauberhaus/security-scanner/commit/076adf81553e2f1dc58231aa1b8c2eb4399fc794))
+
 ## [1.4.0](https://github.com/zauberhaus/security-scanner/compare/v1.3.2...v1.4.0) (2026-11-23)
 
 

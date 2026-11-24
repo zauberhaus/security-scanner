@@ -122,7 +122,7 @@ jobs:
         run: |
           . "$TOOLS_ENV"
           # Shown as the package description on ghcr.io.
-          echo "description=Go with govulncheck $GOVULNCHECK_VERSION, gosec $GOSEC_VERSION and gitleaks $GITLEAKS_VERSION" >> "$GITHUB_OUTPUT"
+          echo "description=Go with govulncheck $GOVULNCHECK_VERSION, gosec $GOSEC_VERSION, gitleaks $GITLEAKS_VERSION and golangci $GOLANGCI_VERSION" >> "$GITHUB_OUTPUT"
 
       - uses: actions/download-artifact@v8
         with:

@@ -88,8 +88,11 @@ jobs:
           platforms: ${{ matrix.platform }}
           build-args: ${{ steps.tools.outputs.args }}
           outputs: type=image,name=${{ env.IMAGE }},push-by-digest=true,name-canonical=true,push=true
-          cache-from: type=gha,scope=security-scanner-${{ matrix.pair }}
-          cache-to: type=gha,mode=max,scope=security-scanner-${{ matrix.pair }}
+          # The cache lives in ghcr.io, not in the GitHub Actions cache: images
+          # are built on release tags, and a cache written on a tag cannot be
+          # read by the next one, so it only filled the 10 GB limit.
+          cache-from: type=registry,ref=${{ env.IMAGE }}:buildcache-${{ matrix.pair }}
+          cache-to: type=registry,ref=${{ env.IMAGE }}:buildcache-${{ matrix.pair }},mode=max,image-manifest=true,oci-mediatypes=true
 
       - name: Export digest
         run: |
@@ -119,7 +122,7 @@ jobs:
         run: |
           . "$TOOLS_ENV"
           # Shown as the package description on ghcr.io.
-          echo "description=Go with govulncheck $GOVULNCHECK_VERSION, gosec $GOSEC_VERSION and gitleaks $GITLEAKS_VERSION" >> "$GITHUB_OUTPUT"
+          echo "description=Go with govulncheck $GOVULNCHECK_VERSION, gosec $GOSEC_VERSION, gitleaks $GITLEAKS_VERSION and golangci $GOLANGCI_VERSION" >> "$GITHUB_OUTPUT"
 
       - uses: actions/download-artifact@v8
         with:

@@ -11,6 +11,9 @@
 # Without PACKAGE, the packages of this repository are cleaned. Needs gh (with
 # packages write access) and docker (logged in to ghcr.io, to read manifests).
 #
+# Versions tagged buildcache-* hold the BuildKit layer cache of the release
+# builds: they are neither counted as releases nor deleted.
+#
 # A multi-arch image is made of several versions: the tagged index plus its
 # untagged children (per-architecture images and attestations). The children of
 # every kept version are kept too, otherwise the image would break. Untagged
@@ -67,12 +70,13 @@ for pkg in "${PACKAGES[@]}"; do
 
   # The newest tagged versions, and everything they reference, are kept.
   kept=$(jq -rs --argjson n "$KEEP" \
-    'map(select(.tags | length > 0)) | sort_by(.created_at) | reverse | .[:$n][] | .name' <<< "$versions")
+    'map(select((.tags | length > 0) and (.tags | any(startswith("buildcache-")) | not))) | sort_by(.created_at) | reverse | .[:$n][] | .name' <<< "$versions")
   protected=$(for d in $kept; do children "$image" "$d"; done | sort -u)
   echo "    keeping: $(tr '\n' ' ' <<< "$kept" | sed 's/sha256:\([0-9a-f]\{12\}\)[0-9a-f]*/\1/g')"
 
   jq -c --arg protected "$protected" --argjson grace "$GRACE_HOURS" \
     'select(($protected | split("\n")) as $p | (.name | IN($p[]) | not))
+     | select(.tags | any(startswith("buildcache-")) | not)
      | select((.created_at | fromdateiso8601) < (now - $grace * 3600))' <<< "$versions" |
   while IFS= read -r v; do
     id=$(jq -r .id <<< "$v")

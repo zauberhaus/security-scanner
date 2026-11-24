@@ -1,7 +1,8 @@
 name: Clean up packages
 
 # Deletes old container image versions, keeping the latest release and the one
-# before. See scripts/cleanup-packages.sh.
+# before (scripts/cleanup-packages.sh), and Actions caches that were not used
+# for two days (scripts/cleanup-caches.sh).
 on:
   schedule:
     - cron: "17 2 * * *"
@@ -15,6 +16,7 @@ on:
 permissions:
   contents: read
   packages: write
+  actions: write
 
 concurrency:
   group: cleanup
@@ -35,6 +37,17 @@ jobs:
 
       - name: Delete old versions
         run: scripts/cleanup-packages.sh ${{ inputs.dry_run && '-n' || '' }}
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GH_REPO: ${{ github.repository }}
+
+  caches:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+
+      - name: Delete old caches
+        run: scripts/cleanup-caches.sh ${{ inputs.dry_run && '-n' || '' }}
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           GH_REPO: ${{ github.repository }}

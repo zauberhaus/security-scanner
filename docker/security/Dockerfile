@@ -14,11 +14,13 @@ ENV GOPATH=/go \
 ARG GOVULNCHECK_VERSION
 ARG GOSEC_VERSION
 ARG GITLEAKS_VERSION
+ARG GOLANGCI_VERSION
 
 # The tool versions, readable without pulling the image.
 LABEL tools.govulncheck.version=$GOVULNCHECK_VERSION \
       tools.gosec.version=$GOSEC_VERSION \
-      tools.gitleaks.version=$GITLEAKS_VERSION
+      tools.gitleaks.version=$GITLEAKS_VERSION \
+      tools.golangci.version=$GOLANGCI_VERSION
 
 # GOBIN keeps the binaries out of GOPATH, which the workflow's module cache may
 # shadow. GOTOOLCHAIN=auto lets go.mod ask for a newer Go than the image has.
@@ -39,4 +41,5 @@ RUN test -n "$GOVULNCHECK_VERSION" && test -n "$GOSEC_VERSION" && test -n "$GITL
  && go install golang.org/x/vuln/cmd/govulncheck@${GOVULNCHECK_VERSION} \
  && go install github.com/securego/gosec/v2/cmd/gosec@${GOSEC_VERSION} \
  && go install github.com/zricethezav/gitleaks/v8@${GITLEAKS_VERSION} \
+ && go install github.com/golangci/golangci-lint/v2/cmd/golangci-lint@v2.15.0 \
  && go clean -cache -modcache

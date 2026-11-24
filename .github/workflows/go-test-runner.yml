@@ -88,8 +88,11 @@ jobs:
           platforms: ${{ matrix.platform }}
           build-args: ${{ steps.tools.outputs.args }}
           outputs: type=image,name=${{ env.IMAGE }},push-by-digest=true,name-canonical=true,push=true
-          cache-from: type=gha,scope=go-test-runner-${{ matrix.pair }}
-          cache-to: type=gha,mode=max,scope=go-test-runner-${{ matrix.pair }}
+          # The cache lives in ghcr.io, not in the GitHub Actions cache: images
+          # are built on release tags, and a cache written on a tag cannot be
+          # read by the next one, so it only filled the 10 GB limit.
+          cache-from: type=registry,ref=${{ env.IMAGE }}:buildcache-${{ matrix.pair }}
+          cache-to: type=registry,ref=${{ env.IMAGE }}:buildcache-${{ matrix.pair }},mode=max,image-manifest=true,oci-mediatypes=true
 
       - name: Export digest
         run: |
